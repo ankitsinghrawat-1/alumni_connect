@@ -1,7 +1,7 @@
 // server/server.js
 const express = require('express');
-const http = require('http'); // Import http module
-const { Server } = require("socket.io"); // Import socket.io
+const http = require('http');
+const { Server } = require("socket.io");
 const bodyParser = require('body-parser');
 const mysql = require('mysql2/promise');
 const cors = require('cors');
@@ -12,10 +12,10 @@ const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
 const app = express();
-const server = http.createServer(app); // Create HTTP server from Express app
-const io = new Server(server, { // Attach socket.io to the server
+const server = http.createServer(app);
+const io = new Server(server, {
     cors: {
-        origin: "http://localhost:3000", // Allow your client's origin
+        origin: "http://localhost:3000",
         methods: ["GET", "POST"]
     }
 });
@@ -51,19 +51,22 @@ const pool = mysql.createPool({
     connectionLimit: 10,
     queueLimit: 0
 });
-module.exports = pool; // Export for middleware
+module.exports = pool;
 
 // --- FILE UPLOAD (MULTER) SETUP ---
-// ... (Your existing multer code remains the same)
 const uploadDir = path.join(__dirname, '..', 'uploads');
 const resumeDir = path.join(__dirname, '..', 'uploads', 'resumes');
+const chatImagesDir = path.join(__dirname, '..', 'uploads', 'chat'); // NEW: Directory for chat images
 fs.mkdir(uploadDir, { recursive: true }).catch(console.error);
 fs.mkdir(resumeDir, { recursive: true }).catch(console.error);
+fs.mkdir(chatImagesDir, { recursive: true }).catch(console.error); // NEW: Create the chat images directory
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         if (file.fieldname === 'resume') {
             cb(null, resumeDir);
+        } else if (file.fieldname === 'chat_image') { // NEW: Handle chat images
+            cb(null, chatImagesDir);
         } else {
             cb(null, uploadDir);
         }
@@ -77,20 +80,23 @@ const storage = multer.diskStorage({
 const upload = multer({
     storage: storage,
     fileFilter: (req, file, cb) => {
-        if (file.fieldname === "profile_picture") {
+        // Allow images for profile pictures and chat
+        if (file.fieldname === "profile_picture" || file.fieldname === "chat_image") {
             if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png' || file.mimetype === 'image/gif') {
                 cb(null, true);
             } else {
-                cb(new Error('Only .jpg, .png, and .gif formats are allowed for profile pictures.'));
+                cb(new Error('Only image files (jpg, png, gif) are allowed.'));
             }
-        } else if (file.fieldname === "resume") {
+        } 
+        // Allow specific document types for resumes
+        else if (file.fieldname === "resume") {
             if (file.mimetype === 'application/pdf' || file.mimetype === 'application/msword' || file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
                 cb(null, true);
             } else {
                 cb(new Error('Only .pdf, .doc, and .docx formats are allowed for resumes.'));
             }
         } else {
-            cb(null, false);
+            cb(null, false); // Reject other unexpected files
         }
     }
 });
@@ -111,6 +117,7 @@ const createGlobalNotification = async (message, link) => {
     }
 };
 
+
 // --- API ROUTERS ---
 const adminRoutes = require('./api/admin')(pool);
 const blogRoutes = require('./api/blogs')(pool);
@@ -118,7 +125,8 @@ const campaignRoutes = require('./api/campaigns')(pool);
 const eventRoutes = require('./api/events')(pool, createGlobalNotification);
 const jobRoutes = require('./api/jobs')(pool, upload, createGlobalNotification);
 const mentorRoutes = require('./api/mentors')(pool);
-const messageRoutes = require('./api/messages')(pool);
+// Pass 'upload' to the messages router now
+const messageRoutes = require('./api/messages')(pool, upload); 
 const notificationRoutes = require('./api/notifications')(pool);
 const userRoutes = require('./api/users')(pool, upload);
 
@@ -131,6 +139,7 @@ app.use('/api/mentors', mentorRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/users', userRoutes);
+
 
 // --- REAL-TIME CHAT LOGIC (SOCKET.IO) ---
 let onlineUsers = [];
@@ -149,17 +158,14 @@ const getUser = (userId) => {
 };
 
 io.on("connection", (socket) => {
-    // When a user connects
     console.log("A user connected.");
 
-    // Take userId and socketId from user
     socket.on("addUser", (userId) => {
         addUser(userId, socket.id);
         io.emit("getUsers", onlineUsers);
     });
 
-    // Send and get message
-    socket.on("sendMessage", ({ senderId, receiverId, content, conversationId }) => {
+    socket.on("sendMessage", async ({ senderId, receiverId, content, conversationId, messageType }) => {
         const user = getUser(receiverId);
         if (user) {
             io.to(user.socketId).emit("getMessage", {
@@ -167,11 +173,38 @@ io.on("connection", (socket) => {
                 content,
                 created_at: new Date().toISOString(),
                 conversation_id: conversationId,
+                message_type: messageType, // Pass the message type
             });
+
+            // Only send a toast notification for text messages
+            if (messageType === 'text') {
+                try {
+                    const [sender] = await pool.query('SELECT full_name FROM users WHERE user_id = ?', [senderId]);
+                    if (sender.length > 0) {
+                         io.to(user.socketId).emit("getNotification", {
+                            senderName: sender[0].full_name,
+                            message: content,
+                        });
+                    }
+                } catch (error) {
+                    console.error("Error fetching sender name for notification:", error);
+                }
+            } else { // For images
+                 try {
+                    const [sender] = await pool.query('SELECT full_name FROM users WHERE user_id = ?', [senderId]);
+                    if (sender.length > 0) {
+                         io.to(user.socketId).emit("getNotification", {
+                            senderName: sender[0].full_name,
+                            message: "Sent an image", // Generic message for images
+                        });
+                    }
+                } catch (error) {
+                    console.error("Error fetching sender name for notification:", error);
+                }
+            }
         }
     });
     
-    // Typing indicator
     socket.on("typing", ({ receiverId, isTyping }) => {
          const user = getUser(receiverId);
          if(user) {
@@ -179,7 +212,6 @@ io.on("connection", (socket) => {
          }
     });
 
-    // When a user disconnects
     socket.on("disconnect", () => {
         console.log("A user disconnected.");
         removeUser(socket.id);

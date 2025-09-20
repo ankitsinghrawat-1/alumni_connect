@@ -1,16 +1,27 @@
+// server/api/messages.js
 const express = require('express');
 const router = express.Router();
 
-// This function receives the database connection pool from your main server.js
-module.exports = (pool) => {
+// This function now receives the database pool and the multer upload instance
+module.exports = (pool, upload) => {
 
     // --- MESSAGING ENDPOINTS ---
+
+    // NEW: Endpoint for uploading an image in a chat
+    router.post('/upload-image', upload.single('chat_image'), (req, res) => {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No image file provided.' });
+        }
+        // The file is uploaded, now return its path
+        const imageUrl = `uploads/chat/${req.file.filename}`;
+        res.status(200).json({ imageUrl: imageUrl });
+    });
 
     // Get all messages for a specific conversation
     router.get('/conversations/:id/messages', async (req, res) => {
         try {
             const [messages] = await pool.query(
-                'SELECT m.message_id, m.content, m.created_at, u.user_id as sender_id, u.full_name, u.profile_pic_url FROM messages m JOIN users u ON m.sender_id = u.user_id WHERE m.conversation_id = ? ORDER BY m.created_at ASC',
+                'SELECT m.message_id, m.content, m.created_at, m.message_type, u.user_id as sender_id, u.full_name, u.profile_pic_url FROM messages m JOIN users u ON m.sender_id = u.user_id WHERE m.conversation_id = ? ORDER BY m.created_at ASC',
                 [req.params.id]
             );
             res.json(messages);
@@ -20,9 +31,10 @@ module.exports = (pool) => {
         }
     });
 
-    // Send a new message
+    // Send a new message (text or image URL)
     router.post('/', async (req, res) => {
-        const { sender_email, receiver_email, content } = req.body;
+        // We now expect message_type as well
+        const { sender_email, receiver_email, content, message_type = 'text' } = req.body;
         if (!sender_email || !receiver_email || !content) {
             return res.status(400).json({ message: 'Missing required fields.' });
         }
@@ -52,8 +64,8 @@ module.exports = (pool) => {
                 await pool.query('INSERT INTO conversation_participants (conversation_id, user_id) VALUES (?, ?), (?, ?)', [conversationId, senderId, conversationId, receiverId]);
             }
             
-            // Insert the message
-            await pool.query('INSERT INTO messages (conversation_id, sender_id, content) VALUES (?, ?, ?)', [conversationId, senderId, content]);
+            // Insert the message with its type
+            await pool.query('INSERT INTO messages (conversation_id, sender_id, content, message_type) VALUES (?, ?, ?, ?)', [conversationId, senderId, content, message_type]);
             res.status(201).json({ message: 'Message sent successfully!', conversationId });
         } catch (error) {
             console.error('Error sending message:', error);

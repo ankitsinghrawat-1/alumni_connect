@@ -13,6 +13,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const typingIndicator = document.getElementById('typing-indicator');
     const emojiBtn = document.getElementById('emoji-btn');
     const emojiPicker = document.querySelector('emoji-picker');
+    // Image upload elements
+    const attachBtn = document.getElementById('attach-btn');
+    const imageUploadInput = document.getElementById('image-upload-input');
+
 
     // --- State ---
     const loggedInUserEmail = sessionStorage.getItem('loggedInUserEmail');
@@ -40,11 +44,10 @@ document.addEventListener('DOMContentLoaded', () => {
             appendMessage(data, false);
             messagesDisplay.scrollTop = messagesDisplay.scrollHeight;
         }
-        // You could add logic here for notification badges on conversations
     });
 
     socket.on("getTyping", ({ isTyping }) => {
-        if (isTyping) {
+        if (activeConversation && isTyping) {
             typingIndicator.textContent = `${activeConversation.receiverName} is typing...`;
         } else {
             typingIndicator.textContent = '';
@@ -57,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`http://localhost:3000/api/users/profile/${loggedInUserEmail}`);
             if (response.ok) {
                 loggedInUser = await response.json();
-                socket.emit("addUser", loggedInUser.user_id); // Announce user is online
+                socket.emit("addUser", loggedInUser.user_id);
             }
         } catch (error) {
             console.error("Could not fetch user profile", error);
@@ -75,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     convElement.className = 'conversation-item';
                     convElement.dataset.id = conv.conversation_id;
                     convElement.dataset.receiverEmail = conv.other_user_email;
-                    convElement.dataset.receiverId = conv.user_id; // We need receiver's ID
+                    convElement.dataset.receiverId = conv.user_id;
                     convElement.dataset.receiverName = conv.full_name;
                     convElement.innerHTML = `
                         <img src="${conv.profile_pic_url ? `http://localhost:3000/${conv.profile_pic_url}` : createInitialsAvatar(conv.full_name)}" alt="${conv.full_name}" onerror="this.onerror=null; this.src=createInitialsAvatar('${conv.full_name.replace(/'/g, "\\'")}');">
@@ -97,12 +100,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const appendMessage = (msg, isSentByMe) => {
         const messageElement = document.createElement('div');
         messageElement.className = `message-bubble ${isSentByMe ? 'sent' : 'received'}`;
+
+        let messageContent;
+        if (msg.message_type === 'image') {
+            messageContent = `<img src="http://localhost:3000/${sanitizeHTML(msg.content)}" alt="Chat Image" class="chat-image">`;
+        } else {
+            messageContent = `<p class="message-content">${sanitizeHTML(msg.content)}</p>`;
+        }
+
         messageElement.innerHTML = `
-            <p class="message-content">${sanitizeHTML(msg.content)}</p>
+            ${messageContent}
             <span class="message-timestamp">${new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
         `;
         messagesDisplay.appendChild(messageElement);
     };
+
 
     const loadMessages = async (conversationId) => {
         try {
@@ -149,6 +161,72 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const handleImageUpload = async (file) => {
+        if (!activeConversation) {
+            showToast('Please select a conversation before sending an image.', 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('chat_image', file);
+
+        try {
+            const tempId = `temp_${Date.now()}`;
+            const loadingBubble = `
+                <div class="message-bubble sent" id="${tempId}">
+                    <div class="loading-spinner small"><div class="spinner"></div></div>
+                    <span class="message-timestamp">Sending...</span>
+                </div>`;
+            messagesDisplay.innerHTML += loadingBubble;
+            messagesDisplay.scrollTop = messagesDisplay.scrollHeight;
+
+
+            const response = await fetch('http://localhost:3000/api/messages/upload-image', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Image upload failed.');
+            }
+
+            const result = await response.json();
+            const imageUrl = result.imageUrl;
+
+            const messageData = {
+                senderId: loggedInUser.user_id,
+                receiverId: activeConversation.receiverId,
+                content: imageUrl,
+                conversationId: activeConversation.id,
+                messageType: 'image'
+            };
+
+            socket.emit("sendMessage", messageData);
+
+            await fetch('http://localhost:3000/api/messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sender_email: loggedInUser.email,
+                    receiver_email: activeConversation.receiverEmail,
+                    content: imageUrl,
+                    message_type: 'image'
+                })
+            });
+
+            document.getElementById(tempId).remove();
+            appendMessage({ content: imageUrl, created_at: new Date().toISOString(), message_type: 'image' }, true);
+            messagesDisplay.scrollTop = messagesDisplay.scrollHeight;
+
+        } catch (error) {
+            console.error('Error uploading image:', error);
+            showToast('Failed to send image. Please try again.', 'error');
+            const tempBubble = document.getElementById(tempId);
+            if(tempBubble) tempBubble.remove();
+        }
+    };
+
+
     // --- Event Listeners ---
     conversationsList.addEventListener('click', (e) => {
         const conversationItem = e.target.closest('.conversation-item');
@@ -185,25 +263,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const content = messageInput.value.trim();
         if (!content || !activeConversation) return;
         
-        socket.emit("sendMessage", {
+        const messageData = {
             senderId: loggedInUser.user_id,
             receiverId: activeConversation.receiverId,
             content: content,
             conversationId: activeConversation.id,
-        });
+            messageType: 'text'
+        };
         
-        // Also save to DB
+        socket.emit("sendMessage", messageData);
+        
         await fetch('http://localhost:3000/api/messages', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 sender_email: loggedInUser.email,
                 receiver_email: activeConversation.receiverEmail,
-                content: content
+                content: content,
+                message_type: 'text'
             })
         });
 
-        appendMessage({ content, created_at: new Date().toISOString() }, true);
+        appendMessage({ content, created_at: new Date().toISOString(), message_type: 'text' }, true);
         messagesDisplay.scrollTop = messagesDisplay.scrollHeight;
         messageInput.value = '';
     });
@@ -218,13 +299,54 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     searchInput.addEventListener('input', () => {
-        // ... (existing search logic is fine)
-    });
-    searchResultsContainer.addEventListener('click', (e) => {
-        // ... (existing search results logic is fine)
+        clearTimeout(searchTimeout);
+        const query = searchInput.value.trim();
+        
+        if (query.length < 2) {
+            searchResultsContainer.innerHTML = '';
+            searchResultsContainer.style.display = 'none';
+            return;
+        }
+
+        searchTimeout = setTimeout(async () => {
+            try {
+                const res = await fetch(`http://localhost:3000/api/users/directory?query=${encodeURIComponent(query)}`);
+                const users = await res.json();
+                
+                searchResultsContainer.innerHTML = '';
+                if (users.length > 0) {
+                    users.forEach(user => {
+                        if (user.email === loggedInUserEmail) return; 
+                        const userElement = document.createElement('div');
+                        userElement.className = 'search-result-item';
+                        userElement.dataset.email = user.email;
+                        userElement.innerHTML = `
+                            <img src="${user.profile_pic_url ? `http://localhost:3000/${user.profile_pic_url}` : createInitialsAvatar(user.full_name)}" alt="${user.full_name}">
+                            <span>${user.full_name}</span>
+                        `;
+                        searchResultsContainer.appendChild(userElement);
+                    });
+                    searchResultsContainer.style.display = 'block';
+                } else {
+                    searchResultsContainer.innerHTML = '<div class="info-message" style="padding: 1rem;">No users found.</div>';
+                    searchResultsContainer.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error searching users:', error);
+            }
+        }, 300);
     });
 
-    // Emoji Picker Logic
+    searchResultsContainer.addEventListener('click', (e) => {
+        const userItem = e.target.closest('.search-result-item');
+        if (userItem) {
+            const receiverEmail = userItem.dataset.email;
+            startConversation(receiverEmail);
+            searchInput.value = '';
+            searchResultsContainer.style.display = 'none';
+        }
+    });
+
     emojiBtn.addEventListener('click', () => {
         emojiPicker.classList.toggle('visible');
     });
@@ -233,6 +355,23 @@ document.addEventListener('DOMContentLoaded', () => {
         messageInput.value += event.detail.unicode;
         emojiPicker.classList.remove('visible');
     });
+
+    // --- Image Upload Listeners ---
+    if (attachBtn) {
+        attachBtn.addEventListener('click', () => {
+            imageUploadInput.click();
+        });
+    }
+
+    if (imageUploadInput) {
+        imageUploadInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                handleImageUpload(file);
+            }
+            e.target.value = null; 
+        });
+    }
 
     // --- Initial Load ---
     const initialize = async () => {

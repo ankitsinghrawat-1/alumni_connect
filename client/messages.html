@@ -15,7 +15,7 @@
         })();
     </script>
 </head>
-<body>
+<body class="no-scroll">
     <header class="main-header">
         <nav class="main-nav container">
             <a href="index.html" class="logo">AlumniConnect</a>
@@ -46,8 +46,12 @@
                         </div>
                     <div id="messages-display" class="messages-display"></div>
                     <div id="typing-indicator" class="typing-indicator"></div> <form id="message-form" class="message-form">
+                        <input type="file" id="image-upload-input" accept="image/*" style="display: none;" />
+                        <button type="button" id="attach-btn" class="btn"><i class="fas fa-paperclip"></i></button>
+                        
                         <emoji-picker class="light"></emoji-picker>
                         <button type="button" id="emoji-btn" class="btn"><i class="fas fa-smile"></i></button>
+                        
                         <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" required>
                         <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i></button>
                     </form>
@@ -56,12 +60,12 @@
         </div>
     </main>
 
-    <!-- <footer class="main-footer">
+    <footer class="main-footer">
         <div class="container">
             <p>&copy; 2025 AlumniConnect. All Rights Reserved.</p>
         </div>
     </footer>
-     -->
+    
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     
     <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>

@@ -1,3 +1,4 @@
+// client/js/auth.js
 document.addEventListener('DOMContentLoaded', async () => {
     const navLinks = document.getElementById('nav-links');
 
@@ -13,11 +14,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     navItems.className = 'nav-links';
 
     if (loggedInUserEmail) {
-        let profilePicUrl = ''; // Will be set after fetch
+        let profilePicUrl = '';
         let unreadCount = 0;
-        let userName = 'Alumni'; // Default name
+        let userName = 'Alumni';
 
-        // --- LOGGED-IN VIEW (Initial structure) ---
+        // --- Nav Bar HTML Structure ---
         navItems.innerHTML = `
             <li><a href="about.html">About</a></li>
             <li class="nav-dropdown">
@@ -38,7 +39,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             </li>
             ${userRole === 'admin' ? `<li><a href="admin.html" class="btn btn-secondary">Admin Dashboard</a></li>` : ''}
             <li>
-                <a href="messages.html" class="notification-bell" title="Messages">
+                <a href="messages.html" id="messages-link" class="notification-bell" title="Messages">
                     <i class="fas fa-envelope"></i>
                 </a>
             </li>
@@ -62,19 +63,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             </li>
         `;
         
-        // --- Fetch data and update UI ---
+        // --- Fetch initial data and set up real-time listeners ---
         try {
             const [profileRes, notificationsRes] = await Promise.all([
                 fetch(`http://localhost:3000/api/users/profile/${loggedInUserEmail}`),
                 fetch(`http://localhost:3000/api/notifications?email=${encodeURIComponent(loggedInUserEmail)}`)
             ]);
 
+            let loggedInUser = null;
             if (profileRes.ok) {
-                const user = await profileRes.json();
-                userName = user.full_name;
-                sessionStorage.setItem('loggedInUserName', userName); // Store name for fallback
-                profilePicUrl = user.profile_pic_url 
-                    ? `http://localhost:3000/${user.profile_pic_url}` 
+                loggedInUser = await profileRes.json();
+                userName = loggedInUser.full_name;
+                sessionStorage.setItem('loggedInUserName', userName);
+                profilePicUrl = loggedInUser.profile_pic_url 
+                    ? `http://localhost:3000/${loggedInUser.profile_pic_url}` 
                     : createInitialsAvatar(userName);
             } else {
                  profilePicUrl = createInitialsAvatar(userName);
@@ -88,7 +90,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     bell.innerHTML += `<span class="notification-badge">${unreadCount}</span>`;
                 }
             }
-             // Update the image source and add the error handler
+
             const navImg = navItems.querySelector('.nav-profile-pic');
             if (navImg) {
                 navImg.src = profilePicUrl;
@@ -97,6 +99,30 @@ document.addEventListener('DOMContentLoaded', async () => {
                     this.src = createInitialsAvatar(sessionStorage.getItem('loggedInUserName') || 'Alumni');
                 };
             }
+            
+            // --- REAL-TIME NOTIFICATION LOGIC ---
+            const socket = io("http://localhost:3000");
+
+            socket.on('connect', () => {
+                console.log('Connected to socket for notifications.');
+                if (loggedInUser) {
+                    socket.emit('addUser', loggedInUser.user_id);
+                }
+            });
+
+            socket.on('getNotification', ({ senderName, message }) => {
+                // Show a toast
+                showToast(`New message from ${senderName}: "${message.substring(0, 30)}..."`, 'info');
+                
+                // Update the message icon with a badge
+                const messagesLink = document.getElementById('messages-link');
+                let badge = messagesLink.querySelector('.notification-badge');
+                if (!badge) {
+                    badge = document.createElement('span');
+                    badge.className = 'notification-badge';
+                    messagesLink.appendChild(badge);
+                }
+            });
 
         } catch (error) {
             console.error('Could not fetch initial nav data:', error);
@@ -107,7 +133,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
     } else {
-        // --- LOGGED-OUT VIEW ---
+        // --- Logged-out view ---
         navItems.innerHTML = `
             <li><a href="about.html">About</a></li>
             <li><a href="blogs.html">Blog</a></li>
@@ -120,7 +146,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     navLinks.innerHTML = '';
     navLinks.appendChild(navItems);
 
-    // --- Notification Bell Click Logic ---
+    // --- Event Listeners (Dropdown, Logout, Theme, etc.) ---
+    const messagesLink = document.getElementById('messages-link');
+    if (messagesLink) {
+        messagesLink.addEventListener('click', () => {
+             const badge = messagesLink.querySelector('.notification-badge');
+             if (badge) {
+                 badge.style.display = 'none'; // Hide badge on click
+             }
+        });
+    }
+
     const notificationBell = document.getElementById('notification-bell');
     if (notificationBell) {
         notificationBell.addEventListener('click', async (e) => {
@@ -140,7 +176,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // --- Dropdown Logic ---
     document.querySelectorAll('.dropdown-toggle').forEach(toggle => {
         toggle.addEventListener('click', e => {
             e.preventDefault();
@@ -163,7 +198,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    // --- Logout Button Logic ---
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async () => {
@@ -175,12 +209,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
     
-    // --- Theme Toggle Logic ---
     const themeToggleButton = document.getElementById('theme-toggle-btn');
     if (themeToggleButton) {
         const themeIcon = themeToggleButton.querySelector('i');
         
-        // Set initial icon based on theme
         if (document.documentElement.classList.contains('dark-mode')) {
             themeIcon.classList.replace('fa-moon', 'fa-sun');
         } else {
@@ -188,7 +220,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         themeToggleButton.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent dropdown from closing
+            e.stopPropagation();
             document.documentElement.classList.toggle('dark-mode');
             
             let theme = 'light-mode';
@@ -202,7 +234,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // --- Index Page Header Logic ---
     const path = window.location.pathname;
     const isIndexPage = path.endsWith('/') || path.endsWith('/index.html');
     if (isIndexPage) {
