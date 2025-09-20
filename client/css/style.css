@@ -2289,38 +2289,97 @@ html.dark-mode .received {
     flex-shrink: 0;
 }
 
+/* --- Messaging Page Search --- */
 .conversation-search {
-    position: relative;
-    padding-top: 1rem;
+    position: relative; /* This is crucial for positioning the results dropdown */
+    padding: 1rem 1.5rem 0; /* Adjust spacing as needed */
+}
+
+#user-search-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-medium);
+    font-size: 1rem;
+    background-color: var(--background-color);
+}
+
+#user-search-input:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1);
 }
 
 .search-results-list {
+    display: none; /* Hidden by default, shown via JavaScript */
     position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
+    top: calc(100% - 1rem); /* Position it right below the search input */
+    left: 1.5rem;
+    right: 1.5rem;
     background-color: var(--surface-color);
     border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-medium);
+    border-top: none; /* Avoid double border with the panel header */
+    border-radius: 0 0 var(--border-radius-medium) var(--border-radius-medium);
     box-shadow: var(--box-shadow-elevated);
     z-index: 10;
     max-height: 250px;
     overflow-y: auto;
 }
+
 .search-result-item {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.75rem;
+    padding: 0.75rem 1rem;
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
+
 .search-result-item:hover {
     background-color: var(--background-color);
 }
+
 .search-result-item img {
     width: 40px;
     height: 40px;
     border-radius: 50%;
     object-fit: cover;
+}
+
+.search-result-item span {
+    font-weight: 500;
+}
+
+/* --- Chat Scroll Fix --- */
+
+/* Make the body a container that doesn't scroll when the chat is open */
+body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh; /* Set a fixed viewport height */
+    overflow: hidden; /* Prevent the main body from ever showing a scrollbar */
+}
+
+/* Make the messaging 'main' element flexible to fill available space */
+main.messaging-main {
+    flex-grow: 1; /* Allow this to grow and fill space between header and footer */
+    min-height: 0; /* Important for flexbox children to shrink properly */
+    padding: 1rem 0; /* Add some vertical spacing */
+    overflow: hidden; /* Hide any overflow from its children */
+}
+
+/* Ensure the chat container uses all the space given by 'messaging-main' */
+.messaging-container {
+    height: 100%;
+}
+
+/* Ensure the right panel (chat area) fills the container's height */
+.chat-panel {
+    height: 100%;
+}
+
+/* Make the message display area scrollable */
+.messages-display {
+    flex: 1; /* This makes it take up all available space in the chat panel */
+    overflow-y: auto; /* This adds the dedicated scrollbar ONLY for messages */
 }

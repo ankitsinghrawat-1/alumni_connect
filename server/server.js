@@ -28,11 +28,8 @@ app.use(bodyParser.json());
 app.use(cookieParser());
 
 // --- SERVE STATIC FILES ---
-// Serve the frontend 'client' directory
 app.use(express.static(path.join(__dirname, '..', 'client')));
-// Serve the 'uploads' directory
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
-
 
 // --- DATABASE CONNECTION POOL ---
 const pool = mysql.createPool({
@@ -44,6 +41,9 @@ const pool = mysql.createPool({
     connectionLimit: 10,
     queueLimit: 0
 });
+// Export the pool for use in middleware
+module.exports = pool;
+
 
 // --- FILE UPLOAD (MULTER) SETUP ---
 const uploadDir = path.join(__dirname, '..', 'uploads');
@@ -64,7 +64,28 @@ const storage = multer.diskStorage({
         cb(null, `${file.fieldname}-${userIdentifier}-${Date.now()}${path.extname(file.originalname)}`);
     }
 });
-const upload = multer({ storage: storage });
+
+const upload = multer({
+    storage: storage,
+    fileFilter: (req, file, cb) => {
+        if (file.fieldname === "profile_picture") {
+            if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png' || file.mimetype === 'image/gif') {
+                cb(null, true);
+            } else {
+                cb(new Error('Only .jpg, .png, and .gif formats are allowed for profile pictures.'));
+            }
+        } else if (file.fieldname === "resume") {
+            if (file.mimetype === 'application/pdf' || file.mimetype === 'application/msword' || file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                cb(null, true);
+            } else {
+                cb(new Error('Only .pdf, .doc, and .docx formats are allowed for resumes.'));
+            }
+        } else {
+            cb(null, false);
+        }
+    }
+});
+
 
 // --- HELPER FUNCTIONS ---
 const createGlobalNotification = async (message, link) => {

@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { isAdmin } = require('../middleware/authMiddleware');
 
 // This function receives the database pool, upload instance, and notification helper
 module.exports = (pool, upload, createGlobalNotification) => {
@@ -79,13 +80,10 @@ module.exports = (pool, upload, createGlobalNotification) => {
     });
 
     // POST /api/jobs
-    router.post('/', async (req, res) => {
+    router.post('/', isAdmin, async (req, res) => {
         const { title, company, location, description, contact_email, admin_email } = req.body;
         try {
-            const [admin] = await pool.query('SELECT user_id FROM users WHERE email = ? AND role = "admin"', [admin_email]);
-            if (admin.length === 0) {
-                return res.status(403).json({ message: 'Unauthorized: Only admins can post jobs.' });
-            }
+            // The admin check is now handled by the middleware, so we can remove it from here.
             await pool.query('INSERT INTO jobs (title, company, location, description, contact_email) VALUES (?, ?, ?, ?, ?)', [title, company, location, description, contact_email]);
             await createGlobalNotification(`A new job has been posted: "${title}" at ${company}.`, '/jobs.html');
             res.status(201).json({ message: 'Job added successfully' });
