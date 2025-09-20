@@ -1,5 +1,7 @@
 // server/server.js
 const express = require('express');
+const http = require('http'); // Import http module
+const { Server } = require("socket.io"); // Import socket.io
 const bodyParser = require('body-parser');
 const mysql = require('mysql2/promise');
 const cors = require('cors');
@@ -10,6 +12,14 @@ const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
 const app = express();
+const server = http.createServer(app); // Create HTTP server from Express app
+const io = new Server(server, { // Attach socket.io to the server
+    cors: {
+        origin: "http://localhost:3000", // Allow your client's origin
+        methods: ["GET", "POST"]
+    }
+});
+
 const PORT = process.env.PORT || 3000;
 
 // --- MIDDLEWARE SETUP ---
@@ -41,11 +51,10 @@ const pool = mysql.createPool({
     connectionLimit: 10,
     queueLimit: 0
 });
-// Export the pool for use in middleware
-module.exports = pool;
-
+module.exports = pool; // Export for middleware
 
 // --- FILE UPLOAD (MULTER) SETUP ---
+// ... (Your existing multer code remains the same)
 const uploadDir = path.join(__dirname, '..', 'uploads');
 const resumeDir = path.join(__dirname, '..', 'uploads', 'resumes');
 fs.mkdir(uploadDir, { recursive: true }).catch(console.error);
@@ -86,7 +95,6 @@ const upload = multer({
     }
 });
 
-
 // --- HELPER FUNCTIONS ---
 const createGlobalNotification = async (message, link) => {
     try {
@@ -102,7 +110,6 @@ const createGlobalNotification = async (message, link) => {
         console.error('Error creating global notification:', error);
     }
 };
-
 
 // --- API ROUTERS ---
 const adminRoutes = require('./api/admin')(pool);
@@ -125,8 +132,63 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/users', userRoutes);
 
+// --- REAL-TIME CHAT LOGIC (SOCKET.IO) ---
+let onlineUsers = [];
+
+const addUser = (userId, socketId) => {
+    !onlineUsers.some(user => user.userId === userId) &&
+        onlineUsers.push({ userId, socketId });
+};
+
+const removeUser = (socketId) => {
+    onlineUsers = onlineUsers.filter(user => user.socketId !== socketId);
+};
+
+const getUser = (userId) => {
+    return onlineUsers.find(user => user.userId === userId);
+};
+
+io.on("connection", (socket) => {
+    // When a user connects
+    console.log("A user connected.");
+
+    // Take userId and socketId from user
+    socket.on("addUser", (userId) => {
+        addUser(userId, socket.id);
+        io.emit("getUsers", onlineUsers);
+    });
+
+    // Send and get message
+    socket.on("sendMessage", ({ senderId, receiverId, content, conversationId }) => {
+        const user = getUser(receiverId);
+        if (user) {
+            io.to(user.socketId).emit("getMessage", {
+                sender_id: senderId,
+                content,
+                created_at: new Date().toISOString(),
+                conversation_id: conversationId,
+            });
+        }
+    });
+    
+    // Typing indicator
+    socket.on("typing", ({ receiverId, isTyping }) => {
+         const user = getUser(receiverId);
+         if(user) {
+             io.to(user.socketId).emit("getTyping", { isTyping });
+         }
+    });
+
+    // When a user disconnects
+    socket.on("disconnect", () => {
+        console.log("A user disconnected.");
+        removeUser(socket.id);
+        io.emit("getUsers", onlineUsers);
+    });
+});
+
 
 // --- START SERVER ---
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });

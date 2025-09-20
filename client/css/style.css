@@ -2383,3 +2383,79 @@ main.messaging-main {
     flex: 1; /* This makes it take up all available space in the chat panel */
     overflow-y: auto; /* This adds the dedicated scrollbar ONLY for messages */
 }
+
+/* --- New Messaging UI/UX Styles --- */
+
+/* Online Status Indicator */
+.chat-header-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.online-status {
+    font-size: 0.8rem;
+    color: var(--subtle-text-color);
+}
+
+.online-status.online {
+    color: var(--success-color);
+    font-weight: 600;
+}
+
+.online-status.online::before {
+    content: '●';
+    margin-right: 5px;
+}
+
+/* Typing Indicator */
+.typing-indicator {
+    padding: 0 1.5rem 0.5rem;
+    height: 20px;
+    font-style: italic;
+    color: var(--subtle-text-color);
+    font-size: 0.9rem;
+}
+
+/* Emoji Picker Styles */
+.message-form {
+    position: relative; /* Needed for the emoji picker */
+}
+
+#emoji-btn {
+    background: none;
+    border: none;
+    color: var(--subtle-text-color);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0 0.5rem;
+}
+#emoji-btn:hover {
+    color: var(--primary-color);
+}
+
+emoji-picker {
+    position: absolute;
+    bottom: 100%; /* Position above the input form */
+    left: 10px;
+    display: none; /* Hidden by default */
+}
+
+emoji-picker.visible {
+    display: block;
+}
+
+.message-bubble .message-content {
+    margin: 0; /* Remove default paragraph margin */
+    word-break: break-word; /* Ensure long messages wrap */
+}
+.message-bubble .message-timestamp {
+    font-size: 0.75rem;
+    color: var(--subtle-text-color);
+    margin-top: 5px;
+    display: block;
+    text-align: right;
+}
+
+.message-bubble.sent .message-timestamp {
+    color: rgba(255, 255, 255, 0.7);
+}
