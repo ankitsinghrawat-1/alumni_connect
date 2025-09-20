@@ -113,6 +113,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <li><a href="blogs.html">Blog</a></li>
             <li><a href="login.html" class="btn btn-secondary">Log In</a></li>
             <li><a href="signup.html" class="btn btn-primary">Sign Up</a></li>
+            <li><button id="theme-toggle-btn" class="theme-toggle-button"><i class="fas fa-moon"></i></button></li>
         `;
     }
 
@@ -179,6 +180,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (themeToggleButton) {
         const themeIcon = themeToggleButton.querySelector('i');
         
+        // Set initial icon based on theme
         if (document.documentElement.classList.contains('dark-mode')) {
             themeIcon.classList.replace('fa-moon', 'fa-sun');
         } else {
@@ -186,8 +188,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         
         themeToggleButton.addEventListener('click', (e) => {
-            e.stopPropagation();
+            e.stopPropagation(); // Prevent dropdown from closing
             document.documentElement.classList.toggle('dark-mode');
+            
             let theme = 'light-mode';
             if (document.documentElement.classList.contains('dark-mode')) {
                 theme = 'dark-mode';

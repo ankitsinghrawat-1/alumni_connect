@@ -2062,6 +2062,81 @@ html.dark-mode .modal-content {
 .notification-delete-btn:hover {
     color: var(--error-color);
 }
+/* New Landing Page Sections */
+.stats-section {
+    display: flex;
+    justify-content: space-around;
+    text-align: center;
+    padding: 3rem 0;
+    background-color: var(--surface-color);
+}
+
+.stat-item i {
+    font-size: 2.5rem;
+    color: var(--accent-color);
+    margin-bottom: 1rem;
+}
+
+.how-it-works-section {
+    text-align: center;
+    padding: 4rem 0;
+}
+
+.steps-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.step {
+    flex: 1;
+}
+
+.step-icon {
+    width: 50px;
+    height: 50px;
+    line-height: 50px;
+    border-radius: 50%;
+    background-color: var(--accent-color);
+    color: #fff;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 auto 1rem;
+}
+
+.testimonials-section {
+    background-color: var(--background-color);
+    padding: 4rem 0;
+    text-align: center;
+}
+
+.testimonial-card {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.testimonial-img {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 1rem;
+    border: 3px solid var(--accent-color);
+}
+
+.testimonial-card blockquote {
+    font-size: 1.2rem;
+    font-style: italic;
+    margin-bottom: 1rem;
+    color: var(--subtle-text-color);
+}
+
+.testimonial-card cite {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
 /* --- Messaging Page --- */
 .messaging-main {
     flex: 1;

@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const path = require('path');
 const fs = require('fs').promises;
+const crypto = require('crypto');
 
 // This function receives the database pool and multer upload instance
 module.exports = (pool, upload) => {
@@ -77,10 +78,29 @@ module.exports = (pool, upload) => {
     });
 
     // POST /api/users/forgot-password
-    router.post('/forgot-password', (req, res) => {
+    router.post('/forgot-password', async (req, res) => {
         const { email } = req.body;
-        console.log(`Password reset requested for email: ${email}`);
-        res.status(200).json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+        try {
+            const [user] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+            if (user.length === 0) {
+                // We don't want to reveal if an email exists or not
+                return res.status(200).json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+            }
+
+            const resetToken = crypto.randomBytes(32).toString('hex');
+            const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
+
+            await pool.query('UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE email = ?', [resetToken, resetTokenExpiry, email]);
+            
+            // In a real application, you would send an email with this link
+            const resetLink = `http://localhost:3000/reset-password.html?token=${resetToken}`;
+            console.log(`Password reset link for ${email}: ${resetLink}`);
+
+            res.status(200).json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+        } catch (error) {
+            console.error('Forgot password error:', error);
+            res.status(500).json({ message: 'Internal Server Error' });
+        }
     });
 
 
@@ -271,6 +291,40 @@ module.exports = (pool, upload) => {
             res.status(200).json({ message: 'Privacy settings updated successfully' });
         } catch (error) {
             console.error('Error updating privacy settings:', error);
+            res.status(500).json({ message: 'Internal Server Error' });
+        }
+    });
+    
+    // --- MESSAGING ---
+
+    // GET /api/users/conversations
+    router.get('/conversations', async (req, res) => {
+        const { email } = req.query;
+        try {
+            const [user] = await pool.query('SELECT user_id FROM users WHERE email = ?', [email]);
+            if (user.length === 0) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+            const userId = user[0].user_id;
+
+            const [conversations] = await pool.query(`
+                SELECT 
+                    c.conversation_id,
+                    u.full_name,
+                    u.email AS other_user_email,
+                    u.profile_pic_url,
+                    (SELECT content FROM messages WHERE conversation_id = c.conversation_id ORDER BY created_at DESC LIMIT 1) AS last_message
+                FROM conversations c
+                JOIN conversation_participants cp ON c.conversation_id = cp.conversation_id
+                JOIN users u ON u.user_id = cp.user_id
+                WHERE c.conversation_id IN (
+                    SELECT conversation_id FROM conversation_participants WHERE user_id = ?
+                ) AND cp.user_id != ?
+            `, [userId, userId]);
+            
+            res.json(conversations);
+        } catch (error) {
+            console.error('Error fetching conversations:', error);
             res.status(500).json({ message: 'Internal Server Error' });
         }
     });
