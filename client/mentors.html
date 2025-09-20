@@ -33,10 +33,23 @@
             </div>
             <div id="mentors-list" class="directory-list">
                 </div>
-            <div id="loading-message" class="info-message">Loading...</div>
-            <div id="no-results-message" class="info-message" style="display: none;">No mentors available at this time.</div>
         </div>
     </main>
+
+    <div id="request-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h3 id="modal-title">Send Mentorship Request</h3>
+            <form id="request-form">
+                <input type="hidden" id="mentor-id-input">
+                <div class="input-group">
+                    <label for="request-message">Message (Optional)</label>
+                    <textarea id="request-message" rows="4" placeholder="Introduce yourself and what you're looking for in a mentor..."></textarea>
+                </div>
+                <button type="submit" id="modal-submit-btn" class="btn btn-primary btn-full-width">Send Request</button>
+            </form>
+        </div>
+    </div>
     
     <footer class="main-footer">
         <div class="container">
@@ -45,8 +58,8 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-    <script src="js/notifications.js"></script>
     <script src="js/utils.js"></script>
+    <script src="js/notifications.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/mentors.js"></script>
 </body>

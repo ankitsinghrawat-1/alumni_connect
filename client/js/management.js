@@ -21,9 +21,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderers = {
         users: (item) => `
             <tr>
-                <td>${item.full_name}</td>
-                <td>${item.email}</td>
-                <td><span class="status-badge status-${item.verification_status}">${item.verification_status}</span></td>
+                <td>${sanitizeHTML(item.full_name)} ${item.verification_status === 'verified' ? '<span class="verified-badge-sm" title="Verified"><i class="fas fa-check-circle"></i></span>' : ''}</td>
+                <td>${sanitizeHTML(item.email)}</td>
+                <td><span class="role-badge">${sanitizeHTML(item.role)}</span></td>
                 <td>
                     ${item.verification_status !== 'verified' ? `<button class="btn btn-success btn-sm update-status-btn" data-id="${item.user_id}" data-status="verified">Verify</button>` : ''}
                     ${item.verification_status !== 'unverified' ? `<button class="btn btn-secondary btn-sm update-status-btn" data-id="${item.user_id}" data-status="unverified">Unverify</button>` : ''}
@@ -32,8 +32,8 @@ document.addEventListener('DOMContentLoaded', () => {
             </tr>`,
         verification: (item) => `
             <tr>
-                <td>${item.full_name}</td>
-                <td>${item.email}</td>
+                <td>${sanitizeHTML(item.full_name)}</td>
+                <td>${sanitizeHTML(item.email)}</td>
                 <td>
                     <button class="btn btn-success btn-sm update-status-btn" data-id="${item.user_id}" data-status="verified">Approve</button>
                     <button class="btn btn-danger btn-sm update-status-btn" data-id="${item.user_id}" data-status="unverified">Deny</button>
@@ -41,8 +41,8 @@ document.addEventListener('DOMContentLoaded', () => {
             </tr>`,
         events: (item) => `
             <tr>
-                <td>${item.title}</td>
-                <td>${item.location}</td>
+                <td>${sanitizeHTML(item.title)}</td>
+                <td>${sanitizeHTML(item.location)}</td>
                 <td>${new Date(item.date).toLocaleDateString()}</td>
                 <td>
                     <a href="edit-event.html?id=${item.event_id}" class="btn btn-secondary btn-sm">Edit</a>
@@ -51,9 +51,9 @@ document.addEventListener('DOMContentLoaded', () => {
             </tr>`,
         jobs: (item) => `
             <tr>
-                <td>${item.title}</td>
-                <td>${item.company}</td>
-                <td>${item.location}</td>
+                <td>${sanitizeHTML(item.title)}</td>
+                <td>${sanitizeHTML(item.company)}</td>
+                <td>${sanitizeHTML(item.location)}</td>
                 <td>
                     <a href="edit-job.html?id=${item.job_id}" class="btn btn-secondary btn-sm">Edit</a>
                     <button class="btn btn-danger btn-sm delete-btn" data-id="${item.job_id}" data-type="job">Delete</button>
@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </tr>`,
         campaigns: (item) => `
             <tr>
-                <td>${item.title}</td>
+                <td>${sanitizeHTML(item.title)}</td>
                 <td>$${parseFloat(item.goal_amount).toLocaleString()}</td>
                 <td>${new Date(item.end_date).toLocaleDateString()}</td>
                 <td>
@@ -71,8 +71,8 @@ document.addEventListener('DOMContentLoaded', () => {
             </tr>`,
         blogs: (item) => `
             <tr>
-                <td>${item.title}</td>
-                <td>${item.author}</td>
+                <td>${sanitizeHTML(item.title)}</td>
+                <td>${sanitizeHTML(item.author)}</td>
                 <td>${new Date(item.created_at).toLocaleDateString()}</td>
                 <td>
                     <a href="edit-blog.html?id=${item.blog_id}" class="btn btn-secondary btn-sm">Edit</a>
@@ -81,10 +81,10 @@ document.addEventListener('DOMContentLoaded', () => {
             </tr>`,
         applications: (item) => `
             <tr>
-                <td>${item.full_name}</td>
-                <td>${item.job_title}</td>
+                <td>${sanitizeHTML(item.full_name)}</td>
+                <td>${sanitizeHTML(item.job_title)}</td>
                 <td>${new Date(item.application_date).toLocaleDateString()}</td>
-                <td><span class="status-badge status-${item.status}">${item.status.charAt(0).toUpperCase() + item.status.slice(1)}</span></td>
+                <td><span class="status-badge status-${item.status}">${sanitizeHTML(item.status.charAt(0).toUpperCase() + item.status.slice(1))}</span></td>
                 <td>
                     <a href="http://localhost:3000/${item.resume_path}" target="_blank" class="btn btn-secondary btn-sm">View Resume</a>
                     ${item.status === 'pending' ? `
