@@ -1,3 +1,4 @@
+// client/js/view-profile.js
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const userEmail = urlParams.get('email');
@@ -7,7 +8,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // NEW: Function to fetch and render user's blog posts
     const fetchUserBlogs = async (email) => {
         const postsContainer = document.getElementById('user-blog-posts');
         try {
@@ -35,28 +35,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const response = await fetch(`http://localhost:3000/api/users/profile/${email}`);
             
+            if (!response.ok && response.status !== 403) {
+                 throw new Error('Failed to fetch user profile');
+            }
+
+            const user = await response.json();
+
             if (response.status === 403) {
-                const privateData = await response.json();
-                const badgeHTML = privateData.is_verified ? '<span class="verified-badge" title="Verified"><i class="fas fa-check-circle"></i> Verified</span>' : '';
+                const badgeHTML = user.verification_status === 'verified' ? '<span class="verified-badge" title="Verified"><i class="fas fa-check-circle"></i> Verified</span>' : '';
                 document.querySelector('.profile-container-view').innerHTML = `
                     <div class="profile-header-view">
-                        <img class="profile-pic-view" src="${privateData.profile_pic_url ? `http://localhost:3000/${privateData.profile_pic_url}` : createInitialsAvatar(privateData.full_name)}" alt="Profile Picture" onerror="this.onerror=null; this.src=createInitialsAvatar('${privateData.full_name.replace(/'/g, "\\'")}');">
-                        <h2>${privateData.full_name} ${badgeHTML}</h2>
+                        <img class="profile-pic-view" src="${user.profile_pic_url ? `http://localhost:3000/${user.profile_pic_url}` : createInitialsAvatar(user.full_name)}" alt="Profile Picture" onerror="this.onerror=null; this.src=createInitialsAvatar('${user.full_name.replace(/'/g, "\\'")}');">
+                        <h2>${user.full_name} ${badgeHTML}</h2>
                         <p class="info-message"><i class="fas fa-lock"></i> This profile is private.</p>
                     </div>
                 `;
                 return;
             }
-
-            if (!response.ok) {
-                throw new Error('Failed to fetch user profile');
-            }
-            const user = await response.json();
             
             document.getElementById('profile-name-view').textContent = user.full_name || 'N/A';
             
             const badgeContainer = document.getElementById('verified-badge-container');
-            if (user.is_verified) {
+            if (user.verification_status === 'verified') {
                 badgeContainer.innerHTML = '<span class="verified-badge" title="Verified"><i class="fas fa-check-circle"></i> Verified</span>';
             } else {
                 badgeContainer.innerHTML = '';
@@ -92,7 +92,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 profilePic.src = createInitialsAvatar(user.full_name);
             };
 
-            // Call the new function to fetch blogs
             fetchUserBlogs(email);
 
         } catch (error) {

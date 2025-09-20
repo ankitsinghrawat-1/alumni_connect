@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale-1.0">
     <title>User Profile</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -20,8 +20,7 @@
     <header class="main-header">
         <nav class="main-nav container">
             <a href="index.html" class="logo">AlumniConnect</a>
-            <ul id="nav-links" class="nav-links">
-                </ul>
+            <ul id="nav-links" class="nav-links"></ul>
         </nav>
     </header>
 
@@ -42,6 +41,10 @@
             <div class="profile-content">
                 <div id="edit-profile" class="profile-page active">
                     <h2>Edit Profile</h2>
+                    
+                    <div id="verification-status-section" class="form-section">
+                        </div>
+
                     <form id="profile-form">
                         <div class="profile-pic-section">
                             <img id="profile-pic" class="profile-pic" src="https://via.placeholder.com/150" alt="Profile Picture">
@@ -149,43 +152,40 @@
                         <button type="submit" class="btn btn-primary btn-full-width">Change Password</button>
                     </form>
                 </div>
+
                 <div id="privacy-settings" class="profile-page">
                     <h2>Privacy Settings</h2>
                     <small>If unchecked, others won't find you in the directory or view your full profile.</small>
                     <form id="privacy-form">
-                        
                         <div class="input-group privacy-option">
                             <input type="checkbox" id="is_profile_public">
                             <div class="privacy-label-group">
                                 <label for="is_profile_public">Make my profile visible in the public directory</label>
                             </div>
                         </div>
-                
                         <div class="input-group privacy-option">
                             <input type="checkbox" id="is_email_visible">
                              <div class="privacy-label-group">
                                 <label for="is_email_visible">Make my email addresses visible on my profile</label>
                             </div>
                         </div>
-                
                         <div class="input-group privacy-option">
                             <input type="checkbox" id="is_company_visible">
                             <div class="privacy-label-group">
                                 <label for="is_company_visible">Make my current company and job title visible</label>
                             </div>
                         </div>
-                
                         <div class="input-group privacy-option">
                             <input type="checkbox" id="is_location_visible">
                             <div class="privacy-label-group">
                                 <label for="is_location_visible">Make my city visible</label>
                             </div>
                         </div>
-                        
                         <div id="privacy-message" class="form-message"></div>
                         <button type="submit" class="btn btn-primary btn-full-width">Save Settings</button>
                     </form>
                 </div>
+            </div>
         </div>
     </main>
     
@@ -196,8 +196,8 @@
     </footer>
     
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-    <script src="js/notifications.js"></script>
     <script src="js/utils.js"></script>
+    <script src="js/notifications.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/profile.js"></script>
 </body>

@@ -1,4 +1,4 @@
-// docs/directory.js
+// client/js/directory.js
 document.addEventListener('DOMContentLoaded', async () => {
     const alumniListContainer = document.getElementById('directory-list');
     const searchInput = document.getElementById('directory-search-input');
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const alumni = await response.json();
             
-            alumniListContainer.innerHTML = ''; // Clear loading spinner
+            alumniListContainer.innerHTML = '';
 
             if (alumni.length > 0) {
                 alumni.forEach(alumnus => {
@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <div class="alumnus-details">
                             <h3>
                                 ${sanitizeHTML(alumnus.full_name)}
-                                ${alumnus.is_verified ? '<span class="verified-badge-sm" title="Verified"><i class="fas fa-check-circle"></i></span>' : ''}
+                                ${alumnus.verification_status === 'verified' ? '<span class="verified-badge-sm" title="Verified"><i class="fas fa-check-circle"></i></span>' : ''}
                             </h3>
                             <p><i class="fas fa-briefcase"></i> ${sanitizeHTML(alumnus.job_title ? alumnus.job_title + ' at ' : '')}${sanitizeHTML(alumnus.current_company || 'N/A')}</p>
                             <p><i class="fas fa-graduation-cap"></i> ${sanitizeHTML(alumnus.major || 'N/A')} | Class of ${sanitizeHTML(alumnus.graduation_year || 'N/A')}</p>

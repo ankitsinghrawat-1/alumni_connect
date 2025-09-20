@@ -103,6 +103,29 @@ module.exports = (pool, upload) => {
         }
     });
 
+        //Route for a user to request verification
+        router.post('/request-verification', async (req, res) => {
+            const { email } = req.body;
+            if (!email) {
+                return res.status(400).json({ message: 'Email is required.' });
+            }
+            try {
+                const [result] = await pool.query(
+                    "UPDATE users SET verification_status = 'pending' WHERE email = ? AND verification_status = 'unverified'",
+                    [email]
+                );
+    
+                if (result.affectedRows === 0) {
+                    return res.status(400).json({ message: 'Could not submit request. You may have already submitted one or are already verified.' });
+                }
+    
+                res.status(200).json({ message: 'Verification request submitted successfully!' });
+            } catch (error) {
+                console.error('Error requesting verification:', error);
+                res.status(500).json({ message: 'Internal Server Error' });
+            }
+        });
+
 
     // --- USER PROFILE & ONBOARDING ---
 

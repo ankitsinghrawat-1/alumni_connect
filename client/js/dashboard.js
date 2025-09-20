@@ -1,3 +1,4 @@
+// client/js/dashboard.js
 document.addEventListener('DOMContentLoaded', async () => {
     const userEmail = sessionStorage.getItem('loggedInUserEmail');
     const userRole = sessionStorage.getItem('userRole');
@@ -24,7 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('profile-info').textContent = `${user.job_title || 'N/A'} at ${user.current_company || 'N/A'}`;
             
             const badgeContainer = document.getElementById('dashboard-verified-badge');
-            if (user.is_verified) {
+            if (user.verification_status === 'verified') {
                 badgeContainer.innerHTML = '<span class="verified-badge-sm" title="Verified"><i class="fas fa-check-circle"></i></span>';
             }
 
@@ -33,9 +34,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ? `http://localhost:3000/${user.profile_pic_url}` 
                 : createInitialsAvatar(user.full_name);
 
-            // Add the error handler here
             profilePic.onerror = () => {
-                profilePic.onerror = null; // Prevent infinite loops
+                profilePic.onerror = null;
                 profilePic.src = createInitialsAvatar(user.full_name);
             };
 

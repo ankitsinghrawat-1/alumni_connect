@@ -1,4 +1,4 @@
-const express = require('express');
+const express = require('express'); 
 const router = express.Router();
 const bcrypt = require('bcrypt');
 
@@ -158,14 +158,30 @@ module.exports = (pool) => {
         }
     });
 
+    // --- NEW: Verification Request Management ---
+    // Route: GET /api/admin/verification-requests
+    // Fetches only users with a 'pending' verification status.
+    router.get('/verification-requests', async (req, res) => {
+        try {
+            const [rows] = await pool.query(
+                "SELECT user_id, full_name, email FROM users WHERE verification_status = 'pending'"
+            );
+            res.json(rows);
+        } catch (error) {
+            console.error('Error fetching verification requests:', error);
+            res.status(500).json({ message: 'Internal Server Error' });
+        }
+    });
 
-    // --- USER MANAGEMENT ---
+
+// --- USER MANAGEMENT (UPDATED) ---
 
     // Route: GET /api/admin/users
     // Fetches a list of all users for the admin.
     router.get('/users', async (req, res) => {
         try {
-            const [rows] = await pool.query('SELECT user_id, full_name, email, role, is_verified FROM users');
+            // Updated to fetch the new verification_status column
+            const [rows] = await pool.query('SELECT user_id, full_name, email, role, verification_status FROM users');
             res.json(rows);
         } catch (error) {
             console.error('Error fetching users for admin:', error);
@@ -173,16 +189,21 @@ module.exports = (pool) => {
         }
     });
 
-    // Route: POST /api/admin/users/:id/verify
-    // Toggles the verification status of a user.
-    router.post('/users/:id/verify', async (req, res) => {
+    // MODIFIED: This route now handles setting any valid status.
+    router.post('/users/:id/update-status', async (req, res) => {
         const { id } = req.params;
-        const { is_verified } = req.body;
+        const { status } = req.body;
+
+        // Validate that the status is one of the allowed ENUM values
+        if (!['verified', 'unverified'].includes(status)) {
+            return res.status(400).json({ message: 'Invalid status provided.' });
+        }
+        
         try {
-            await pool.query('UPDATE users SET is_verified = ? WHERE user_id = ?', [is_verified, id]);
+            await pool.query('UPDATE users SET verification_status = ? WHERE user_id = ?', [status, id]);
             res.status(200).json({ message: 'User verification status updated.' });
         } catch (error) {
-            console.error('Error updating user verification:', error);
+            console.error('Error updating user verification status:', error);
             res.status(500).json({ message: 'Internal Server Error' });
         }
     });

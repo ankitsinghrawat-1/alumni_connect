@@ -1,3 +1,4 @@
+// client/js/management.js
 document.addEventListener('DOMContentLoaded', () => {
     const pageType = document.body.dataset.page;
     const listContainer = document.getElementById('management-list');
@@ -8,25 +9,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const apiConfig = {
-        users: { url: 'admin/users', type: 'user' },
-        events: { url: 'events', type: 'event' },
-        jobs: { url: 'jobs', type: 'job' },
-        campaigns: { url: 'campaigns', type: 'campaign' },
-        blogs: { url: 'blogs', type: 'blog' },
-        applications: { url: 'admin/applications', type: 'application' }
+        users: { url: 'admin/users' },
+        events: { url: 'events' },
+        jobs: { url: 'jobs' },
+        campaigns: { url: 'campaigns' },
+        blogs: { url: 'blogs' },
+        applications: { url: 'admin/applications' },
+        verification: { url: 'admin/verification-requests' }
     };
 
     const renderers = {
         users: (item) => `
             <tr>
-                <td>${item.full_name} ${item.is_verified ? '<span class="verified-badge-sm" title="Verified"><i class="fas fa-check-circle"></i></span>' : ''}</td>
+                <td>${item.full_name}</td>
                 <td>${item.email}</td>
-                <td><span class="role-badge">${item.role}</span></td>
+                <td><span class="status-badge status-${item.verification_status}">${item.verification_status}</span></td>
                 <td>
-                    <button class="btn ${item.is_verified ? 'btn-secondary' : 'btn-primary'} btn-sm verify-btn" data-id="${item.user_id}" data-verified="${item.is_verified ? '1' : '0'}">
-                        ${item.is_verified ? 'Unverify' : 'Verify'}
-                    </button>
+                    ${item.verification_status !== 'verified' ? `<button class="btn btn-success btn-sm update-status-btn" data-id="${item.user_id}" data-status="verified">Verify</button>` : ''}
+                    ${item.verification_status !== 'unverified' ? `<button class="btn btn-secondary btn-sm update-status-btn" data-id="${item.user_id}" data-status="unverified">Unverify</button>` : ''}
                     <button class="btn btn-danger btn-sm delete-btn" data-id="${item.user_id}" data-type="user">Delete</button>
+                </td>
+            </tr>`,
+        verification: (item) => `
+            <tr>
+                <td>${item.full_name}</td>
+                <td>${item.email}</td>
+                <td>
+                    <button class="btn btn-success btn-sm update-status-btn" data-id="${item.user_id}" data-status="verified">Approve</button>
+                    <button class="btn btn-danger btn-sm update-status-btn" data-id="${item.user_id}" data-status="unverified">Deny</button>
                 </td>
             </tr>`,
         events: (item) => `
@@ -144,24 +154,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        if (target.classList.contains('verify-btn')) {
-            const isVerified = target.dataset.verified === '1';
+        if (target.classList.contains('update-status-btn')) {
+            const status = target.dataset.status;
             try {
-                const response = await fetch(`http://localhost:3000/api/admin/users/${id}/verify`, {
+                const response = await fetch(`http://localhost:3000/api/admin/users/${id}/update-status`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ is_verified: !isVerified })
+                    body: JSON.stringify({ status: status })
                 });
 
                 if (response.ok) {
-                    showToast('User verification status updated.', 'success');
+                    showToast('User status updated successfully.', 'success');
                     loadData();
                 } else {
                     const result = await response.json();
                     showToast(`Error: ${result.message}`, 'error');
                 }
             } catch (error) {
-                console.error('Error updating verification status:', error);
+                console.error('Error updating user status:', error);
                 showToast('An error occurred.', 'error');
             }
         }

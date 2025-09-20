@@ -1,3 +1,4 @@
+// client/js/profile.js
 document.addEventListener('DOMContentLoaded', async () => {
     const form = document.getElementById('profile-form');
     const userEmail = sessionStorage.getItem('loggedInUserEmail');
@@ -9,16 +10,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     const privacyForm = document.getElementById('privacy-form');
     const privacyMessage = document.getElementById('privacy-message');
     const passwordForm = document.getElementById('password-form');
+    const verificationSection = document.getElementById('verification-status-section');
 
     const displayMessage = (message, type = 'error', containerId = 'message') => {
         const messageContainer = document.getElementById(containerId);
-        messageContainer.textContent = message;
-        messageContainer.className = `form-message ${type}`;
-        setTimeout(() => {
-            messageContainer.textContent = '';
-            messageContainer.className = 'form-message';
-        }, 5000);
-    }
+        if (messageContainer) {
+            messageContainer.textContent = message;
+            messageContainer.className = `form-message ${type}`;
+            setTimeout(() => {
+                messageContainer.textContent = '';
+                messageContainer.className = 'form-message';
+            }, 5000);
+        }
+    };
 
     if (!userEmail) {
         window.location.href = 'login.html';
@@ -60,30 +64,57 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.addEventListener('hashchange', handleTabSwitching);
     handleTabSwitching();
 
-    uploadBtn.addEventListener('click', () => {
-        pfpUpload.click();
-    });
+    if (uploadBtn) {
+        uploadBtn.addEventListener('click', () => pfpUpload.click());
+    }
 
-    pfpUpload.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                profilePic.src = event.target.result;
-            };
-            reader.readAsDataURL(file);
+    if (pfpUpload) {
+        pfpUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    profilePic.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    const renderVerificationStatus = (status) => {
+        if (!verificationSection) return;
+        let content = '';
+        switch(status) {
+            case 'verified':
+                content = `<h3>Account Status</h3><p class="status-badge status-verified"><i class="fas fa-check-circle"></i> Verified</p>`;
+                break;
+            case 'pending':
+                content = `<h3>Account Status</h3><p class="status-badge status-pending"><i class="fas fa-clock"></i> Verification Request Pending</p>`;
+                break;
+            case 'unverified':
+            default:
+                content = `
+                    <h3>Account Status</h3>
+                    <p class="status-badge status-unverified"><i class="fas fa-times-circle"></i> Unverified</p>
+                    <p>Request verification to get a badge on your profile and build trust within the community.</p>
+                    <button id="request-verification-btn" class="btn btn-primary">Request Verification</button>
+                `;
+                break;
         }
-    });
+        verificationSection.innerHTML = content;
+    };
 
     const populateProfileData = (data) => {
         document.getElementById('full_name').textContent = data.full_name || 'Not set';
         
         const badgeContainer = document.getElementById('profile-verified-badge');
-        if (data.is_verified) {
+        if (data.verification_status === 'verified') {
             badgeContainer.innerHTML = '<span class="verified-badge-sm" title="Verified"><i class="fas fa-check-circle"></i></span>';
         } else {
             badgeContainer.innerHTML = '';
         }
+        
+        renderVerificationStatus(data.verification_status);
 
         document.getElementById('email').textContent = data.email || 'Not set';
         document.getElementById('bio').textContent = data.bio || 'Not set';
@@ -135,9 +166,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
-    await fetchUserProfile();
-    await fetchPrivacySettings();
-
     document.querySelectorAll('.edit-icon').forEach(icon => {
         icon.addEventListener('click', (e) => {
             const field = e.target.previousElementSibling;
@@ -169,75 +197,73 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const formData = new FormData();
-        const fields = [
-            'full_name', 'bio', 'current_company', 'job_title',
-            'city', 'linkedin', 'university', 'major',
-            'graduation_year', 'degree'
-        ];
+    if(form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            const fields = [
+                'full_name', 'bio', 'current_company', 'job_title',
+                'city', 'linkedin', 'university', 'major',
+                'graduation_year', 'degree'
+            ];
 
-        fields.forEach(id => {
-            const input = document.getElementById(`${id}_input`);
-            const display = document.getElementById(id);
-            
-            if (input && input.style.display === 'block') {
-                formData.append(id, input.value);
-            } else if (display) {
-                const currentValue = display.textContent === 'Not set' ? '' : display.textContent;
-                formData.append(id, currentValue);
+            fields.forEach(id => {
+                const input = document.getElementById(`${id}_input`);
+                const display = document.getElementById(id);
+                
+                if (input && input.style.display === 'block') {
+                    formData.append(id, input.value);
+                } else if (display) {
+                    const currentValue = display.textContent === 'Not set' ? '' : display.textContent;
+                    formData.append(id, currentValue);
+                }
+            });
+
+            if (pfpUpload.files[0]) {
+                formData.append('profile_picture', pfpUpload.files[0]);
+            }
+
+            try {
+                const response = await fetch(`http://localhost:3000/api/users/profile/${userEmail}`, {
+                    method: 'PUT',
+                    body: formData
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    displayMessage(data.message, 'success');
+                    await fetchUserProfile();
+                } else {
+                    displayMessage(data.message);
+                }
+            } catch (error) {
+                displayMessage('An error occurred while saving your profile.');
             }
         });
+    }
 
-        if (pfpUpload.files[0]) {
-            formData.append('profile_picture', pfpUpload.files[0]);
-        }
-
-        try {
-            const response = await fetch(`http://localhost:3000/api/users/profile/${userEmail}`, {
-                method: 'PUT',
-                body: formData
-            });
-            const data = await response.json();
-            if (response.ok) {
-                displayMessage(data.message, 'success');
-                await fetchUserProfile(); // Refresh data on screen
-            } else {
-                displayMessage(data.message);
+    if(privacyForm) {
+        privacyForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const settings = {
+                is_profile_public: document.getElementById('is_profile_public').checked,
+                is_email_visible: document.getElementById('is_email_visible').checked,
+                is_company_visible: document.getElementById('is_company_visible').checked,
+                is_location_visible: document.getElementById('is_location_visible').checked
+            };
+            
+            try {
+                const response = await fetch(`http://localhost:3000/api/users/privacy/${userEmail}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+                const result = await response.json();
+                displayMessage(result.message, response.ok ? 'success' : 'error', 'privacy-message');
+            } catch (error) {
+                displayMessage('An error occurred while saving.', 'error', 'privacy-message');
             }
-        } catch (error) {
-            displayMessage('An error occurred while saving your profile.');
-        }
-    });
-
-    privacyForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const settings = {
-            is_profile_public: document.getElementById('is_profile_public').checked,
-            is_email_visible: document.getElementById('is_email_visible').checked,
-            is_company_visible: document.getElementById('is_company_visible').checked,
-            is_location_visible: document.getElementById('is_location_visible').checked
-        };
-        
-        try {
-            const response = await fetch(`http://localhost:3000/api/users/privacy/${userEmail}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(settings)
-            });
-            const result = await response.json();
-            privacyMessage.textContent = result.message;
-            if (response.ok) {
-                privacyMessage.className = 'form-message success';
-            } else {
-                privacyMessage.className = 'form-message error';
-            }
-        } catch (error) {
-            privacyMessage.className = 'form-message error';
-            privacyMessage.textContent = 'An error occurred while saving.';
-        }
-    });
+        });
+    }
 
     if (passwordForm) {
         passwordForm.addEventListener('submit', async (e) => {
@@ -275,4 +301,38 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     }
+
+    if(verificationSection) {
+        verificationSection.addEventListener('click', async (e) => {
+            if (e.target.id === 'request-verification-btn') {
+                e.target.disabled = true;
+                e.target.textContent = 'Submitting...';
+
+                try {
+                    const response = await fetch('http://localhost:3000/api/users/request-verification', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: userEmail })
+                    });
+
+                    const result = await response.json();
+                    if (response.ok) {
+                        showToast(result.message, 'success');
+                        renderVerificationStatus('pending');
+                    } else {
+                        showToast(result.message, 'error');
+                        e.target.disabled = false;
+                        e.target.textContent = 'Request Verification';
+                    }
+                } catch (error) {
+                    showToast('An error occurred. Please try again.', 'error');
+                    e.target.disabled = false;
+                    e.target.textContent = 'Request Verification';
+                }
+            }
+        });
+    }
+
+    await fetchUserProfile();
+    await fetchPrivacySettings();
 });
