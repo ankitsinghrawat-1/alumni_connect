@@ -1,7 +1,7 @@
+// server/api/blogs.js
 const express = require('express');
 const router = express.Router();
 
-// This function receives the database connection pool from your main server.js
 module.exports = (pool) => {
     // --- BLOG ENDPOINTS ---
 
@@ -12,6 +12,25 @@ module.exports = (pool) => {
             res.json(rows);
         } catch (error) {
             console.error('Error fetching blogs:', error);
+            res.status(500).json({ message: 'Internal Server Error' });
+        }
+    });
+    
+    // NEW: GET /api/blogs/user/:email - To get all blogs by a specific user
+    router.get('/user/:email', async (req, res) => {
+        try {
+            const [user] = await pool.query('SELECT user_id FROM users WHERE email = ?', [req.params.email]);
+            if (user.length === 0) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+            const author_id = user[0].user_id;
+            const [blogs] = await pool.query(
+                'SELECT blog_id, title, content, created_at FROM blogs WHERE author_id = ? ORDER BY created_at DESC',
+                [author_id]
+            );
+            res.json(blogs);
+        } catch (error) {
+            console.error('Error fetching blogs for user:', error);
             res.status(500).json({ message: 'Internal Server Error' });
         }
     });
@@ -30,7 +49,7 @@ module.exports = (pool) => {
         }
     });
     
-    // GET /api/user/blogs
+    // GET /api/user/blogs (This is for the logged-in user's "My Blogs" page)
     router.get('/user/blogs', async (req, res) => {
         const { email } = req.query;
         if (!email) {
@@ -49,7 +68,6 @@ module.exports = (pool) => {
             res.status(500).json({ message: 'Internal Server Error' });
         }
     });
-
 
     // POST /api/blogs
     router.post('/', async (req, res) => {

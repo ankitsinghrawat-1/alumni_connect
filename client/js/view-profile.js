@@ -7,6 +7,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
+    // NEW: Function to fetch and render user's blog posts
+    const fetchUserBlogs = async (email) => {
+        const postsContainer = document.getElementById('user-blog-posts');
+        try {
+            const response = await fetch(`http://localhost:3000/api/blogs/user/${email}`);
+            const blogs = await response.json();
+
+            if (blogs.length > 0) {
+                postsContainer.innerHTML = blogs.map(post => `
+                    <div class="user-post-item">
+                        <h4><a href="blog-post.html?id=${post.blog_id}">${sanitizeHTML(post.title)}</a></h4>
+                        <p>${sanitizeHTML(post.content.substring(0, 150))}...</p>
+                        <small>Posted on ${new Date(post.created_at).toLocaleDateString()}</small>
+                    </div>
+                `).join('');
+            } else {
+                postsContainer.innerHTML = '<p>This user has not posted any blogs yet.</p>';
+            }
+        } catch (error) {
+            console.error('Error fetching user blogs:', error);
+            postsContainer.innerHTML = '<p class="info-message error">Could not load blog posts.</p>';
+        }
+    };
+
     const fetchUserProfile = async (email) => {
         try {
             const response = await fetch(`http://localhost:3000/api/users/profile/${email}`);
@@ -67,6 +91,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 profilePic.onerror = null;
                 profilePic.src = createInitialsAvatar(user.full_name);
             };
+
+            // Call the new function to fetch blogs
+            fetchUserBlogs(email);
 
         } catch (error) {
             console.error('Error fetching user profile:', error);

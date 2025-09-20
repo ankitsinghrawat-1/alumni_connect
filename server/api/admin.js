@@ -53,6 +53,43 @@ module.exports = (pool) => {
         }
     });
 
+    // --- NEW: ANALYTICS ENDPOINTS ---
+
+    // Route: GET /api/admin/analytics/signups
+    // Fetches user signup counts grouped by date for a line chart.
+    router.get('/analytics/signups', async (req, res) => {
+        try {
+            const [rows] = await pool.query(`
+                SELECT DATE(created_at) as date, COUNT(*) as count 
+                FROM users 
+                WHERE created_at >= CURDATE() - INTERVAL 30 DAY
+                GROUP BY DATE(created_at) 
+                ORDER BY date ASC
+            `);
+            res.json(rows);
+        } catch (error) {
+            console.error('Error fetching signup analytics:', error);
+            res.status(500).json({ message: 'Internal Server Error' });
+        }
+    });
+
+    // Route: GET /api/admin/analytics/content-overview
+    // Fetches total counts of blogs, jobs, and events for a bar chart.
+    router.get('/analytics/content-overview', async (req, res) => {
+        try {
+            const [[blogs]] = await pool.query('SELECT COUNT(*) as count FROM blogs');
+            const [[jobs]] = await pool.query('SELECT COUNT(*) as count FROM jobs');
+            const [[events]] = await pool.query('SELECT COUNT(*) as count FROM events');
+            res.json({
+                blogs: blogs.count,
+                jobs: jobs.count,
+                events: events.count
+            });
+        } catch (error) {
+            console.error('Error fetching content overview analytics:', error);
+            res.status(500).json({ message: 'Internal Server Error' });
+        }
+    });
 
     // --- APPLICATION MANAGEMENT ---
 
