@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale-1.0">
     <title>Alumni Directory</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -34,12 +34,12 @@
                 <input type="text" id="major-filter" placeholder="Major">
                 <input type="number" id="year-filter" placeholder="Graduation Year">
                 <input type="text" id="city-filter" placeholder="City">
+                <input type="text" id="industry-filter" placeholder="Industry (e.g., Tech)">
+                <input type="text" id="skills-filter" placeholder="Skills (e.g., JavaScript)">
                 <button id="directory-search-button" class="btn btn-primary">Search</button>
             </div>
             <div id="directory-list" class="directory-list">
                 </div>
-            <div id="loading-message" class="info-message">Loading...</div>
-            <div id="no-results-message" class="info-message" style="display: none;">No results found.</div>
         </div>
     </main>
     
@@ -50,9 +50,9 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-    <script src="js/notifications.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
     <script src="js/directory.js"></script>
 </body>
 </html>

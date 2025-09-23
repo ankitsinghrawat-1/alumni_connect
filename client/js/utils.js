@@ -1,4 +1,42 @@
 // client/js/utils.js
+// client/js/utils.js
+
+/**
+ * A universal function to fetch data and render it to a container.
+ * Handles loading, empty, and error states automatically.
+ * @param {string} endpoint - The API endpoint to fetch data from.
+ * @param {HTMLElement} container - The DOM element to render content into.
+ * @param {function} itemRenderer - A function that takes a single item and returns an HTML string.
+ * @param {object} [options] - Optional parameters.
+ * @param {string} [options.emptyMessage] - Message to display when no items are found.
+ * @param {string} [options.gridClass] - A class to apply to the container after rendering.
+ */
+const renderData = async (endpoint, container, itemRenderer, options = {}) => {
+    const { 
+        emptyMessage = '<p class="info-message">No items to display.</p>',
+        gridClass = '' 
+    } = options;
+
+    if (!container) return;
+
+    container.innerHTML = `<div class="loading-spinner"><div class="spinner"></div></div>`;
+
+    try {
+        const items = await window.api.get(endpoint);
+        
+        if (items.length > 0) {
+            container.innerHTML = items.map(itemRenderer).join('');
+            if (gridClass) {
+                container.className = gridClass;
+            }
+        } else {
+            container.innerHTML = emptyMessage;
+        }
+    } catch (error) {
+        console.error(`Error fetching data from ${endpoint}:`, error);
+        container.innerHTML = `<p class="info-message error">Failed to load content. Please try again later.</p>`;
+    }
+};
 
 const showToast = (message, type = 'info') => {
     let backgroundColor;

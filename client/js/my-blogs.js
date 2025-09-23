@@ -1,16 +1,16 @@
-document.addEventListener('DOMContentLoaded', () => {
+// client/js/my-blogs.js
+document.addEventListener('DOMContentLoaded', async () => {
     const listContainer = document.getElementById('my-blogs-list');
-    const loggedInUserEmail = sessionStorage.getItem('loggedInUserEmail');
 
-    if (!loggedInUserEmail) {
+    if (!localStorage.getItem('alumniConnectToken')) {
         window.location.href = 'login.html';
         return;
     }
 
     const loadMyBlogs = async () => {
+        listContainer.innerHTML = '<tr><td colspan="3"><div class="loading-spinner"><div class="spinner"></div></div></td></tr>';
         try {
-            const response = await fetch(`http://localhost:3000/api/blogs/user/blogs?email=${encodeURIComponent(loggedInUserEmail)}`);
-            const blogs = await response.json();
+            const blogs = await window.api.get('/blogs/user/my-blogs');
             
             if (blogs.length > 0) {
                 listContainer.innerHTML = blogs.map(blog => `
@@ -21,43 +21,32 @@ document.addEventListener('DOMContentLoaded', () => {
                             <a href="edit-blog.html?id=${blog.blog_id}&user=true" class="btn btn-secondary btn-sm">Edit</a>
                             <button class="btn btn-danger btn-sm delete-btn" data-id="${blog.blog_id}">Delete</button>
                         </td>
-                    </tr>`
-                ).join('');
+                    </tr>
+                `).join('');
             } else {
-                listContainer.innerHTML = '<tr><td colspan="3" class="info-message">You have not created any blog posts yet.</td></tr>';
+                listContainer.innerHTML = '<tr><td colspan="3" class="info-message">You have not created any blog posts yet. <a href="add-blog.html">Create one now!</a></td></tr>';
             }
         } catch (error) {
             console.error('Error fetching your blogs:', error);
-            listContainer.innerHTML = '<tr><td colspan="3" class="info-message error">Failed to load your blog posts.</td></tr>';
+            listContainer.innerHTML = '<tr><td colspan="3" class="info-message error">Could not load your blogs. Please try again.</td></tr>';
         }
     };
 
     listContainer.addEventListener('click', async (e) => {
         if (e.target.classList.contains('delete-btn')) {
             const blogId = e.target.dataset.id;
-            
             if (confirm('Are you sure you want to delete this blog post?')) {
                 try {
-                    const response = await fetch(`http://localhost:3000/api/blogs/${blogId}`, {
-                        method: 'DELETE',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: loggedInUserEmail }) // Send email for authorization
-                    });
-
-                    if (response.ok) {
-                        showToast('Blog post deleted successfully.', 'success');
-                        loadMyBlogs(); // Refresh the list
-                    } else {
-                        const result = await response.json();
-                        showToast(`Error: ${result.message}`, 'error');
-                    }
+                    await window.api.del(`/blogs/${blogId}`);
+                    showToast('Blog post deleted successfully.', 'success');
+                    await loadMyBlogs();
                 } catch (error) {
                     console.error('Error deleting blog post:', error);
-                    showToast('An error occurred while deleting the post.', 'error');
+                    showToast(`Error: ${error.message}`, 'error');
                 }
             }
         }
     });
 
-    loadMyBlogs();
+    await loadMyBlogs();
 });

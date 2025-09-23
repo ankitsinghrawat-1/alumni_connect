@@ -1,24 +1,35 @@
 // server/middleware/authMiddleware.js
-const pool = require('../server.js'); // Assuming your pool is exported from server.js, adjust if needed
+const jwt = require('jsonwebtoken');
 
-const isAdmin = async (req, res, next) => {
-    // A more robust solution would use sessions or JWTs.
-    // This implementation assumes the admin's email is sent for verification.
-    const { admin_email } = req.body;
-    if (!admin_email) {
-        return res.status(401).json({ message: 'Unauthorized: Missing admin credentials.' });
+const verifyToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    if (!authHeader) {
+        return res.status(403).json({ message: 'No token provided.' });
     }
 
-    try {
-        const [admin] = await pool.query('SELECT role FROM users WHERE email = ?', [admin_email]);
-        if (admin.length === 0 || admin[0].role !== 'admin') {
-            return res.status(403).json({ message: 'Forbidden: Admin access required.' });
+    // Token format is "Bearer <token>"
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+        return res.status(403).json({ message: 'Malformed token.' });
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(401).json({ message: 'Unauthorized: Invalid token.' });
         }
-        next(); // User is an admin, proceed.
-    } catch (error) {
-        console.error('Admin authorization error:', error);
-        res.status(500).json({ message: 'Internal Server Error' });
+        // If everything is good, save the decoded user to the request for use in other routes
+        req.user = decoded;
+        next();
+    });
+};
+
+const isAdmin = (req, res, next) => {
+    // This middleware should run AFTER verifyToken
+    if (req.user && req.user.role === 'admin') {
+        next();
+    } else {
+        return res.status(403).json({ message: 'Forbidden: Admin access required.' });
     }
 };
 
-module.exports = { isAdmin };
+module.exports = { verifyToken, isAdmin };

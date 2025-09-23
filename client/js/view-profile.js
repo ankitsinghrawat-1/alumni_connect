@@ -11,8 +11,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const fetchUserBlogs = async (email) => {
         const postsContainer = document.getElementById('user-blog-posts');
         try {
-            const response = await fetch(`http://localhost:3000/api/blogs/user/${email}`);
-            const blogs = await response.json();
+            // This is a public route
+            const blogs = await window.api.get(`/blogs/user/${email}`);
 
             if (blogs.length > 0) {
                 postsContainer.innerHTML = blogs.map(post => `
@@ -33,15 +33,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const fetchUserProfile = async (email) => {
         try {
-            const response = await fetch(`http://localhost:3000/api/users/profile/${email}`);
+            // This is a public route
+            const user = await window.api.get(`/users/profile/${email}`);
             
-            if (!response.ok && response.status !== 403) {
-                 throw new Error('Failed to fetch user profile');
-            }
-
-            const user = await response.json();
-
-            if (response.status === 403) {
+            // The API now handles private profiles, so we just render what we get
+            if (user.message && user.message.includes('private')) {
                 const badgeHTML = user.verification_status === 'verified' ? '<span class="verified-badge" title="Verified"><i class="fas fa-check-circle"></i> Verified</span>' : '';
                 document.querySelector('.profile-container-view').innerHTML = `
                     <div class="profile-header-view">
@@ -80,7 +76,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 linkedinLink.textContent = 'N/A';
             }
             
-            document.getElementById('email-view').textContent = user.university_email || 'N/A';
+            document.getElementById('email-view').textContent = user.email || 'Not public';
 
             const profilePic = document.getElementById('profile-pic-view');
             profilePic.src = user.profile_pic_url 
@@ -92,46 +88,36 @@ document.addEventListener('DOMContentLoaded', async () => {
                 profilePic.src = createInitialsAvatar(user.full_name);
             };
 
-            fetchUserBlogs(email);
+            await fetchUserBlogs(email);
 
         } catch (error) {
             console.error('Error fetching user profile:', error);
-            document.querySelector('.profile-main-view').innerHTML = `<div class="info-message card error">Could not load profile.</div>`;
+            document.querySelector('.profile-main-view').innerHTML = `<div class="info-message card error">Could not load profile. ${error.message}</div>`;
         }
     };
-
-    fetchUserProfile(userEmail);
 
     const sendMessageBtn = document.getElementById('send-message-btn');
     if (sendMessageBtn) {
         sendMessageBtn.addEventListener('click', async () => {
-            const loggedInUserEmail = sessionStorage.getItem('loggedInUserEmail');
+            const loggedInUserEmail = localStorage.getItem('loggedInUserEmail');
             if (!loggedInUserEmail) {
                 showToast('Please log in to send a message.', 'info');
                 return;
             }
 
             try {
-                const response = await fetch('http://localhost:3000/api/messages', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        sender_email: loggedInUserEmail,
-                        receiver_email: userEmail,
-                        content: `Hello!`
-                    })
+                // This will create or find the conversation
+                await window.api.post('/messages', {
+                    receiver_email: userEmail,
+                    content: `Hello!` 
                 });
-
-                if (response.ok) {
-                    window.location.href = 'messages.html';
-                } else {
-                    const result = await response.json();
-                    showToast(`Error: ${result.message}`, 'error');
-                }
+                window.location.href = 'messages.html';
             } catch (error) {
                 console.error('Error starting conversation:', error);
                 showToast('Could not start a conversation.', 'error');
             }
         });
     }
+    
+    await fetchUserProfile(userEmail);
 });

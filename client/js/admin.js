@@ -3,9 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Fetch and Display STATS ---
     const fetchAdminStats = async () => {
         try {
-            const response = await fetch('http://localhost:3000/api/admin/stats');
-            const stats = await response.json();
-
+            const stats = await window.api.get('/admin/stats');
             document.getElementById('total-users').textContent = stats.totalUsers;
             document.getElementById('total-events').textContent = stats.totalEvents;
             document.getElementById('total-jobs').textContent = stats.totalJobs;
@@ -20,17 +18,14 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             // Fetch data for both charts simultaneously
             const [signupsRes, contentRes] = await Promise.all([
-                fetch('http://localhost:3000/api/admin/analytics/signups'),
-                fetch('http://localhost:3000/api/admin/analytics/content-overview')
+                window.api.get('/admin/analytics/signups'),
+                window.api.get('/admin/analytics/content-overview')
             ]);
-
-            const signupData = await signupsRes.json();
-            const contentData = await contentRes.json();
 
             // 1. Render User Signups Line Chart
             const userSignupsCtx = document.getElementById('userSignupsChart').getContext('2d');
-            const labels = signupData.map(item => new Date(item.date).toLocaleDateString());
-            const data = signupData.map(item => item.count);
+            const labels = signupsRes.map(item => new Date(item.date).toLocaleDateString());
+            const data = signupsRes.map(item => item.count);
 
             new Chart(userSignupsCtx, {
                 type: 'line',
@@ -63,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     labels: ['Blogs', 'Jobs', 'Events'],
                     datasets: [{
                         label: 'Total Content',
-                        data: [contentData.blogs, contentData.jobs, contentData.events],
+                        data: [contentRes.blogs, contentRes.jobs, contentRes.events],
                         backgroundColor: [
                             'rgba(30, 58, 95, 0.7)',
                             'rgba(52, 152, 219, 0.7)',

@@ -1,33 +1,21 @@
-// docs/blogs.js
-document.addEventListener('DOMContentLoaded', async () => {
+// client/js/blogs.js
+document.addEventListener('DOMContentLoaded', () => {
     const blogListContainer = document.getElementById('blog-list');
 
-    try {
-        const response = await fetch('http://localhost:3000/api/blogs');
-        const posts = await response.json();
+    const blogItemRenderer = (post) => {
+        const summary = sanitizeHTML(post.content.substring(0, 200) + '...');
+        const postDate = new Date(post.created_at).toLocaleDateString();
+        return `
+            <div class="blog-post-summary card">
+                <h3>${sanitizeHTML(post.title)}</h3>
+                <p class="post-meta">By ${sanitizeHTML(post.author)} on ${postDate}</p>
+                <p>${summary}</p>
+                <a href="blog-post.html?id=${post.blog_id}" class="btn btn-secondary">Read More</a>
+            </div>
+        `;
+    };
 
-        if (posts.length > 0) {
-            posts.forEach(post => {
-                const postElement = document.createElement('div');
-                postElement.classList.add('blog-post-summary', 'card');
-                
-                // Sanitize content before displaying
-                const summary = sanitizeHTML(post.content.substring(0, 200) + '...');
-                const postDate = new Date(post.created_at).toLocaleDateString();
-
-                postElement.innerHTML = `
-                    <h3>${sanitizeHTML(post.title)}</h3>
-                    <p class="post-meta">By ${sanitizeHTML(post.author)} on ${postDate}</p>
-                    <p>${summary}</p>
-                    <a href="blog-post.html?id=${post.blog_id}" class="btn btn-secondary">Read More</a>
-                `;
-                blogListContainer.appendChild(postElement);
-            });
-        } else {
-            blogListContainer.innerHTML = '<p>No blog posts found.</p>';
-        }
-    } catch (error) {
-        console.error('Error fetching blog posts:', error);
-        blogListContainer.innerHTML = '<p>Could not load blog posts.</p>';
-    }
+    renderData('/blogs', blogListContainer, blogItemRenderer, {
+        emptyMessage: '<p class="info-message">No blog posts have been written yet.</p>'
+    });
 });

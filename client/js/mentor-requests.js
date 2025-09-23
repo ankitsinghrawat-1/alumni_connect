@@ -1,9 +1,8 @@
 // client/js/mentor-requests.js
 document.addEventListener('DOMContentLoaded', () => {
     const requestsListContainer = document.getElementById('requests-list');
-    const loggedInUserEmail = sessionStorage.getItem('loggedInUserEmail');
-
-    if (!loggedInUserEmail) {
+    
+    if (!localStorage.getItem('alumniConnectToken')) {
         window.location.href = 'login.html';
         return;
     }
@@ -11,9 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadRequests = async () => {
         requestsListContainer.innerHTML = `<div class="loading-spinner"><div class="spinner"></div></div>`;
         try {
-            const response = await fetch(`http://localhost:3000/api/mentors/requests?mentor_email=${encodeURIComponent(loggedInUserEmail)}`);
-            const requests = await response.json();
-
+            const requests = await window.api.get('/mentors/requests');
             if (requests.length > 0) {
                 requestsListContainer.innerHTML = requests.map(req => `
                     <div class="card request-card">
@@ -56,20 +53,9 @@ document.addEventListener('DOMContentLoaded', () => {
             target.disabled = true;
 
             try {
-                const response = await fetch(`http://localhost:3000/api/mentors/requests/${requestId}/respond`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action })
-                });
-
-                const result = await response.json();
-                if (response.ok) {
-                    showToast(result.message, 'success');
-                    loadRequests(); // Refresh the list of requests
-                } else {
-                    showToast(result.message, 'error');
-                    target.disabled = false;
-                }
+                const result = await window.api.post(`/mentors/requests/${requestId}/respond`, { action });
+                showToast(result.message, 'success');
+                await loadRequests();
             } catch (error) {
                 console.error('Error responding to request:', error);
                 showToast('An error occurred. Please try again.', 'error');

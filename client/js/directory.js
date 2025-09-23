@@ -6,12 +6,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const majorFilter = document.getElementById('major-filter');
     const yearFilter = document.getElementById('year-filter');
     const cityFilter = document.getElementById('city-filter');
+    const industryFilter = document.getElementById('industry-filter'); // New
+    const skillsFilter = document.getElementById('skills-filter');     // New
     const searchButton = document.getElementById('directory-search-button');
 
-    const showLoading = (isLoading) => {
-        if (isLoading) {
-            alumniListContainer.innerHTML = `<div class="loading-spinner"><div class="spinner"></div></div>`;
-        }
+    const showLoading = () => {
+        alumniListContainer.innerHTML = `<div class="loading-spinner"><div class="spinner"></div></div>`;
     };
 
     const showEmptyState = () => {
@@ -24,27 +24,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const fetchAndRenderAlumni = async () => {
-        showLoading(true);
+        showLoading();
 
-        const query = searchInput.value;
-        const university = universityFilter.value;
-        const major = majorFilter.value;
-        const year = yearFilter.value;
-        const city = cityFilter.value;
-
+        // Read values from all filters, including the new ones
         const params = new URLSearchParams({
-            query,
-            university,
-            major,
-            graduation_year: year,
-            city
+            query: searchInput.value,
+            university: universityFilter.value,
+            major: majorFilter.value,
+            graduation_year: yearFilter.value,
+            city: cityFilter.value,
+            industry: industryFilter.value,
+            skills: skillsFilter.value
         });
 
         try {
-            const response = await fetch(`http://localhost:3000/api/users/directory?${params.toString()}`);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            const alumni = await response.json();
-            
+            // The api.js helper will automatically handle the request
+            const alumni = await window.api.get(`/users/directory?${params.toString()}`);
             alumniListContainer.innerHTML = '';
 
             if (alumni.length > 0) {
@@ -79,21 +74,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
-    fetchAndRenderAlumni();
+    searchButton?.addEventListener('click', fetchAndRenderAlumni);
 
-    if (searchButton) {
-        searchButton.addEventListener('click', fetchAndRenderAlumni);
-    }
-
-    const filterInputs = [searchInput, universityFilter, majorFilter, yearFilter, cityFilter];
+    const filterInputs = [searchInput, universityFilter, majorFilter, yearFilter, cityFilter, industryFilter, skillsFilter];
     filterInputs.forEach(input => {
-        if (input) {
-            input.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    fetchAndRenderAlumni();
-                }
-            });
-        }
+        input?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                fetchAndRenderAlumni();
+            }
+        });
     });
+
+    await fetchAndRenderAlumni();
 });

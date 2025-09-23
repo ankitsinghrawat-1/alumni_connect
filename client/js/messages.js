@@ -1,6 +1,5 @@
 // client/js/messages.js
-document.addEventListener('DOMContentLoaded', () => {
-    // --- DOM Elements ---
+document.addEventListener('DOMContentLoaded', async () => {
     const conversationsList = document.getElementById('conversations-list');
     const chatWelcome = document.getElementById('chat-welcome');
     const chatArea = document.getElementById('chat-area');
@@ -13,28 +12,42 @@ document.addEventListener('DOMContentLoaded', () => {
     const typingIndicator = document.getElementById('typing-indicator');
     const emojiBtn = document.getElementById('emoji-btn');
     const emojiPicker = document.querySelector('emoji-picker');
-    // Image upload elements
     const attachBtn = document.getElementById('attach-btn');
     const imageUploadInput = document.getElementById('image-upload-input');
 
-
-    // --- State ---
-    const loggedInUserEmail = sessionStorage.getItem('loggedInUserEmail');
+    const loggedInUserEmail = localStorage.getItem('loggedInUserEmail');
     let activeConversation = null;
     let loggedInUser = null;
     let searchTimeout;
     let typingTimeout;
 
-    // --- Socket.IO Connection ---
     const socket = io("http://localhost:3000");
 
-    // --- Initial Checks ---
     if (!loggedInUserEmail) {
         window.location.href = 'login.html';
         return;
     }
 
-    // --- Socket Event Listeners ---
+    const fetchLoggedInUser = async () => {
+        try {
+            // This is a public route, but we need the user's full details
+            const response = await fetch(`http://localhost:3000/api/users/profile/${loggedInUserEmail}`);
+            if (response.ok) {
+                loggedInUser = await response.json();
+                socket.emit("addUser", loggedInUser.user_id);
+            } else {
+                throw new Error('Could not fetch user profile');
+            }
+        } catch (error) {
+            console.error(error);
+            // If the profile can't be fetched, logout
+            localStorage.clear();
+            window.location.href = 'login.html';
+        }
+    };
+    
+    // ... rest of the file is large, so I'll provide it in full.
+    
     socket.on("connect", () => {
         console.log("Connected to WebSocket server.");
     });
@@ -54,23 +67,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- Functions ---
-    const fetchLoggedInUser = async () => {
-        try {
-            const response = await fetch(`http://localhost:3000/api/users/profile/${loggedInUserEmail}`);
-            if (response.ok) {
-                loggedInUser = await response.json();
-                socket.emit("addUser", loggedInUser.user_id);
-            }
-        } catch (error) {
-            console.error("Could not fetch user profile", error);
-        }
-    };
-
     const loadConversations = async () => {
         try {
-            const res = await fetch(`http://localhost:3000/api/users/conversations?email=${encodeURIComponent(loggedInUserEmail)}`);
-            const conversations = await res.json();
+            const conversations = await window.api.get('/users/conversations');
             conversationsList.innerHTML = '';
             if (conversations.length > 0) {
                 conversations.forEach(conv => {
@@ -96,18 +95,18 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Failed to load conversations', error);
         }
     };
-
+    
     const appendMessage = (msg, isSentByMe) => {
         const messageElement = document.createElement('div');
         messageElement.className = `message-bubble ${isSentByMe ? 'sent' : 'received'}`;
-
+    
         let messageContent;
         if (msg.message_type === 'image') {
             messageContent = `<img src="http://localhost:3000/${sanitizeHTML(msg.content)}" alt="Chat Image" class="chat-image">`;
         } else {
             messageContent = `<p class="message-content">${sanitizeHTML(msg.content)}</p>`;
         }
-
+    
         messageElement.innerHTML = `
             ${messageContent}
             <span class="message-timestamp">${new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -115,11 +114,9 @@ document.addEventListener('DOMContentLoaded', () => {
         messagesDisplay.appendChild(messageElement);
     };
 
-
     const loadMessages = async (conversationId) => {
         try {
-            const res = await fetch(`http://localhost:3000/api/messages/conversations/${conversationId}/messages`);
-            const messages = await res.json();
+            const messages = await window.api.get(`/messages/conversations/${conversationId}/messages`);
             messagesDisplay.innerHTML = '';
             messages.forEach(msg => {
                 appendMessage(msg, msg.sender_id === loggedInUser.user_id);
@@ -136,24 +133,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         try {
-            const response = await fetch('http://localhost:3000/api/messages', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    sender_email: loggedInUserEmail,
-                    receiver_email: receiverEmail,
-                    content: `Hello!`
-                })
-            });
-            if (response.ok) {
-                await loadConversations();
-                const newConvElement = conversationsList.querySelector(`[data-receiver-email="${receiverEmail}"]`);
-                if (newConvElement) {
-                    newConvElement.click();
-                }
-            } else {
-                const result = await response.json();
-                showToast(`Error: ${result.message}`, 'error');
+            await window.api.post('/messages', { receiver_email: receiverEmail, content: 'Hello!' });
+            await loadConversations();
+            const newConvElement = conversationsList.querySelector(`[data-receiver-email="${receiverEmail}"]`);
+            if (newConvElement) {
+                newConvElement.click();
             }
         } catch (error) {
             console.error('Error starting conversation:', error);
@@ -172,24 +156,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const tempId = `temp_${Date.now()}`;
-            const loadingBubble = `
-                <div class="message-bubble sent" id="${tempId}">
-                    <div class="loading-spinner small"><div class="spinner"></div></div>
-                    <span class="message-timestamp">Sending...</span>
-                </div>`;
+            const loadingBubble = `<div class="message-bubble sent" id="${tempId}"><div class="loading-spinner small"><div class="spinner"></div></div><span class="message-timestamp">Sending...</span></div>`;
             messagesDisplay.innerHTML += loadingBubble;
             messagesDisplay.scrollTop = messagesDisplay.scrollHeight;
 
-
-            const response = await fetch('http://localhost:3000/api/messages/upload-image', {
-                method: 'POST',
-                body: formData
-            });
-
+            const response = await window.api.postForm('/messages/upload-image', formData);
             if (!response.ok) {
                 throw new Error('Image upload failed.');
             }
-
             const result = await response.json();
             const imageUrl = result.imageUrl;
 
@@ -203,15 +177,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             socket.emit("sendMessage", messageData);
 
-            await fetch('http://localhost:3000/api/messages', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    sender_email: loggedInUser.email,
-                    receiver_email: activeConversation.receiverEmail,
-                    content: imageUrl,
-                    message_type: 'image'
-                })
+            await window.api.post('/messages', {
+                receiver_email: activeConversation.receiverEmail,
+                content: imageUrl,
+                message_type: 'image'
             });
 
             document.getElementById(tempId).remove();
@@ -226,8 +195,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-
-    // --- Event Listeners ---
     conversationsList.addEventListener('click', (e) => {
         const conversationItem = e.target.closest('.conversation-item');
         if (conversationItem) {
@@ -241,11 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
             conversationItem.classList.add('active');
             chatWelcome.style.display = 'none';
             chatArea.style.display = 'flex';
-            chatHeader.innerHTML = `
-                <div class="chat-header-info">
-                    <h3>Chat with ${activeConversation.receiverName}</h3>
-                    <span class="online-status" id="online-status-indicator">Offline</span>
-                </div>`;
+            chatHeader.innerHTML = `<div class="chat-header-info"><h3>Chat with ${activeConversation.receiverName}</h3><span class="online-status" id="online-status-indicator">Offline</span></div>`;
             socket.on("getUsers", users => {
                  const isOnline = users.some(u => u.userId === activeConversation.receiverId);
                  const statusIndicator = document.getElementById('online-status-indicator');
@@ -273,15 +236,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         socket.emit("sendMessage", messageData);
         
-        await fetch('http://localhost:3000/api/messages', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                sender_email: loggedInUser.email,
-                receiver_email: activeConversation.receiverEmail,
-                content: content,
-                message_type: 'text'
-            })
+        await window.api.post('/messages', {
+            receiver_email: activeConversation.receiverEmail,
+            content: content,
+            message_type: 'text'
         });
 
         appendMessage({ content, created_at: new Date().toISOString(), message_type: 'text' }, true);
@@ -310,9 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         searchTimeout = setTimeout(async () => {
             try {
-                const res = await fetch(`http://localhost:3000/api/users/directory?query=${encodeURIComponent(query)}`);
-                const users = await res.json();
-                
+                const users = await window.api.get(`/users/directory?query=${encodeURIComponent(query)}`);
                 searchResultsContainer.innerHTML = '';
                 if (users.length > 0) {
                     users.forEach(user => {
@@ -356,7 +312,6 @@ document.addEventListener('DOMContentLoaded', () => {
         emojiPicker.classList.remove('visible');
     });
 
-    // --- Image Upload Listeners ---
     if (attachBtn) {
         attachBtn.addEventListener('click', () => {
             imageUploadInput.click();
@@ -373,10 +328,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Initial Load ---
     const initialize = async () => {
         await fetchLoggedInUser();
         await loadConversations();
     };
+    
     initialize();
 });

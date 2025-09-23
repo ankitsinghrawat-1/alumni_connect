@@ -11,6 +11,9 @@ const fs = require('fs').promises;
 const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
+// Import middleware
+const { verifyToken } = require('./middleware/authMiddleware');
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -56,50 +59,29 @@ module.exports = pool;
 // --- FILE UPLOAD (MULTER) SETUP ---
 const uploadDir = path.join(__dirname, '..', 'uploads');
 const resumeDir = path.join(__dirname, '..', 'uploads', 'resumes');
-const chatImagesDir = path.join(__dirname, '..', 'uploads', 'chat'); // NEW: Directory for chat images
+const chatImagesDir = path.join(__dirname, '..', 'uploads', 'chat');
 fs.mkdir(uploadDir, { recursive: true }).catch(console.error);
 fs.mkdir(resumeDir, { recursive: true }).catch(console.error);
-fs.mkdir(chatImagesDir, { recursive: true }).catch(console.error); // NEW: Create the chat images directory
+fs.mkdir(chatImagesDir, { recursive: true }).catch(console.error);
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         if (file.fieldname === 'resume') {
             cb(null, resumeDir);
-        } else if (file.fieldname === 'chat_image') { // NEW: Handle chat images
+        } else if (file.fieldname === 'chat_image') {
             cb(null, chatImagesDir);
         } else {
             cb(null, uploadDir);
         }
     },
     filename: (req, file, cb) => {
-        const userIdentifier = req.body.email ? req.body.email.split('@')[0] : 'user';
+        // Use user ID from token if available, otherwise fallback
+        const userIdentifier = req.user ? req.user.userId : 'user';
         cb(null, `${file.fieldname}-${userIdentifier}-${Date.now()}${path.extname(file.originalname)}`);
     }
 });
 
-const upload = multer({
-    storage: storage,
-    fileFilter: (req, file, cb) => {
-        // Allow images for profile pictures and chat
-        if (file.fieldname === "profile_picture" || file.fieldname === "chat_image") {
-            if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png' || file.mimetype === 'image/gif') {
-                cb(null, true);
-            } else {
-                cb(new Error('Only image files (jpg, png, gif) are allowed.'));
-            }
-        } 
-        // Allow specific document types for resumes
-        else if (file.fieldname === "resume") {
-            if (file.mimetype === 'application/pdf' || file.mimetype === 'application/msword' || file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-                cb(null, true);
-            } else {
-                cb(new Error('Only .pdf, .doc, and .docx formats are allowed for resumes.'));
-            }
-        } else {
-            cb(null, false); // Reject other unexpected files
-        }
-    }
-});
+const upload = multer({ storage: storage });
 
 // --- HELPER FUNCTIONS ---
 const createGlobalNotification = async (message, link) => {
@@ -125,8 +107,7 @@ const campaignRoutes = require('./api/campaigns')(pool);
 const eventRoutes = require('./api/events')(pool, createGlobalNotification);
 const jobRoutes = require('./api/jobs')(pool, upload, createGlobalNotification);
 const mentorRoutes = require('./api/mentors')(pool);
-// Pass 'upload' to the messages router now
-const messageRoutes = require('./api/messages')(pool, upload); 
+const messageRoutes = require('./api/messages')(pool, upload);
 const notificationRoutes = require('./api/notifications')(pool);
 const userRoutes = require('./api/users')(pool, upload);
 
@@ -136,10 +117,20 @@ app.use('/api/campaigns', campaignRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/mentors', mentorRoutes);
-app.use('/api/messages', messageRoutes);
+app.use('/api/messages', verifyToken, messageRoutes); // Protect all message routes
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/users', userRoutes);
 
+
+// --- CENTRAL ERROR HANDLING MIDDLEWARE ---
+// This middleware should be placed AFTER all your routes.
+// It will catch any errors that occur in the routes above.
+app.use((err, req, res, next) => {
+    console.error(err.stack); // Log the full error stack for debugging
+    
+    // Send a generic, clean error message to the client
+    res.status(500).json({ message: 'An unexpected error occurred on the server.' });
+});
 
 // --- REAL-TIME CHAT LOGIC (SOCKET.IO) ---
 let onlineUsers = [];
@@ -173,34 +164,19 @@ io.on("connection", (socket) => {
                 content,
                 created_at: new Date().toISOString(),
                 conversation_id: conversationId,
-                message_type: messageType, // Pass the message type
+                message_type: messageType,
             });
 
-            // Only send a toast notification for text messages
-            if (messageType === 'text') {
-                try {
-                    const [sender] = await pool.query('SELECT full_name FROM users WHERE user_id = ?', [senderId]);
-                    if (sender.length > 0) {
-                         io.to(user.socketId).emit("getNotification", {
-                            senderName: sender[0].full_name,
-                            message: content,
-                        });
-                    }
-                } catch (error) {
-                    console.error("Error fetching sender name for notification:", error);
+            try {
+                const [sender] = await pool.query('SELECT full_name FROM users WHERE user_id = ?', [senderId]);
+                if (sender.length > 0) {
+                     io.to(user.socketId).emit("getNotification", {
+                        senderName: sender[0].full_name,
+                        message: messageType === 'text' ? content : 'Sent an image',
+                    });
                 }
-            } else { // For images
-                 try {
-                    const [sender] = await pool.query('SELECT full_name FROM users WHERE user_id = ?', [senderId]);
-                    if (sender.length > 0) {
-                         io.to(user.socketId).emit("getNotification", {
-                            senderName: sender[0].full_name,
-                            message: "Sent an image", // Generic message for images
-                        });
-                    }
-                } catch (error) {
-                    console.error("Error fetching sender name for notification:", error);
-                }
+            } catch (error) {
+                console.error("Error fetching sender name for notification:", error);
             }
         }
     });

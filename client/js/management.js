@@ -9,13 +9,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const apiConfig = {
-        users: { url: 'admin/users' },
-        events: { url: 'events' },
-        jobs: { url: 'jobs' },
-        campaigns: { url: 'campaigns' },
-        blogs: { url: 'blogs' },
-        applications: { url: 'admin/applications' },
-        verification: { url: 'admin/verification-requests' }
+        users: { url: '/admin/users', type: 'user' },
+        events: { url: '/events', type: 'event' },
+        jobs: { url: '/jobs', type: 'job' },
+        campaigns: { url: '/campaigns', type: 'campaign' },
+        blogs: { url: '/blogs', type: 'blog' },
+        applications: { url: '/admin/applications', type: 'application' },
+        verification: { url: '/admin/verification-requests', type: 'request' }
     };
 
     const renderers = {
@@ -98,11 +98,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadData = async () => {
         const config = apiConfig[pageType];
         if (!config) return;
+        
+        // Admin routes are prefixed in api.js now, so we just use the relative path
+        const url = (pageType === 'events' || pageType === 'jobs' || pageType === 'campaigns' || pageType === 'blogs')
+            ? `/${pageType}`
+            : `/admin/${pageType}`;
 
         try {
-            const response = await fetch(`http://localhost:3000/api/${config.url}`);
-            const items = await response.json();
-            
+            const items = await window.api.get(url);
             if (items.length > 0) {
                 listContainer.innerHTML = items.map(renderers[pageType]).join('');
             } else {
@@ -123,30 +126,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (target.classList.contains('delete-btn')) {
             const type = target.dataset.type;
             const configKey = type + 's';
-            const config = apiConfig[configKey];
-
+            const urlPrefix = (type === 'user') ? '/admin' : '';
+            
             if (confirm(`Are you sure you want to delete this ${type}?`)) {
                 try {
-                    let deleteUrl;
-                    if (type === 'user') {
-                        deleteUrl = `http://localhost:3000/api/admin/users/${id}`;
-                    } else {
-                        deleteUrl = `http://localhost:3000/api/${config.url}/${id}`;
-                    }
-                    
-                    const response = await fetch(deleteUrl, { 
-                        method: 'DELETE',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: sessionStorage.getItem('loggedInUserEmail') })
-                    });
-
-                    if (response.ok) {
-                        showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} deleted successfully.`, 'success');
-                        loadData();
-                    } else {
-                        const result = await response.json();
-                        showToast(`Error: ${result.message}`, 'error');
-                    }
+                    await window.api.del(`${urlPrefix}/${configKey}/${id}`);
+                    showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} deleted successfully.`, 'success');
+                    await loadData();
                 } catch (error) {
                     console.error(`Error deleting ${type}:`, error);
                     showToast(`An error occurred while deleting the ${type}.`, 'error');
@@ -157,19 +143,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (target.classList.contains('update-status-btn')) {
             const status = target.dataset.status;
             try {
-                const response = await fetch(`http://localhost:3000/api/admin/users/${id}/update-status`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: status })
-                });
-
-                if (response.ok) {
-                    showToast('User status updated successfully.', 'success');
-                    loadData();
-                } else {
-                    const result = await response.json();
-                    showToast(`Error: ${result.message}`, 'error');
-                }
+                await window.api.post(`/admin/users/${id}/update-status`, { status });
+                showToast('User status updated successfully.', 'success');
+                await loadData();
             } catch (error) {
                 console.error('Error updating user status:', error);
                 showToast('An error occurred.', 'error');
@@ -220,20 +196,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const admin_notes = adminNotesInput.value;
 
             try {
-                const response = await fetch(`http://localhost:3000/api/admin/applications/${id}/process`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status, admin_notes })
-                });
-
-                const result = await response.json();
-                if (response.ok) {
-                    showToast(result.message, 'success');
-                    closeDecisionModal();
-                    loadData();
-                } else {
-                    showToast(`Error: ${result.message}`, 'error');
-                }
+                const result = await window.api.post(`/admin/applications/${id}/process`, { status, admin_notes });
+                showToast(result.message, 'success');
+                closeDecisionModal();
+                await loadData();
             } catch (error) {
                 console.error('Error processing application:', error);
                 showToast('An error occurred.', 'error');

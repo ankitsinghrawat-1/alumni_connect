@@ -1,10 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     const addCampaignForm = document.getElementById('add-campaign-form');
-    const loggedInUserEmail = sessionStorage.getItem('loggedInUserEmail');
-    const userRole = sessionStorage.getItem('userRole');
 
-    if (userRole !== 'admin') {
-        window.location.href = 'index.html'; // Redirect non-admins
+    if (localStorage.getItem('userRole') !== 'admin') {
+        window.location.href = 'index.html';
         return;
     }
 
@@ -18,27 +16,15 @@ document.addEventListener('DOMContentLoaded', () => {
             start_date: document.getElementById('start_date').value,
             end_date: document.getElementById('end_date').value,
             image_url: document.getElementById('image_url').value,
-            admin_email: loggedInUserEmail
         };
 
         try {
-            const response = await fetch('http://localhost:3000/api/campaigns', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(campaignData)
-            });
-
-            const result = await response.json();
-
-            if (response.ok) {
-                showToast(result.message, 'success');
-                addCampaignForm.reset();
-            } else {
-                showToast(`Error: ${result.message}`, 'error');
-            }
+            const result = await window.api.post('/campaigns', campaignData);
+            showToast(result.message, 'success');
+            addCampaignForm.reset();
         } catch (error) {
             console.error('Error creating campaign:', error);
-            showToast('An unexpected error occurred. Please try again.', 'error');
+            showToast(`Error: ${error.message}`, 'error');
         }
     });
 });

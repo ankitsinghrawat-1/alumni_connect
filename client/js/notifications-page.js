@@ -1,8 +1,8 @@
-document.addEventListener('DOMContentLoaded', () => {
+// client/js/notifications-page.js
+document.addEventListener('DOMContentLoaded', async () => {
     const notificationsListContainer = document.getElementById('notifications-list');
-    const loggedInUserEmail = sessionStorage.getItem('loggedInUserEmail');
 
-    if (!loggedInUserEmail) {
+    if (!localStorage.getItem('alumniConnectToken')) {
         window.location.href = 'login.html';
         return;
     }
@@ -10,8 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadNotifications = async () => {
         notificationsListContainer.innerHTML = `<div class="loading-spinner"><div class="spinner"></div></div>`;
         try {
-            const response = await fetch(`http://localhost:3000/api/notifications?email=${encodeURIComponent(loggedInUserEmail)}`);
-            const notifications = await response.json();
+            const notifications = await window.api.get('/notifications');
 
             if (notifications.length > 0) {
                 notificationsListContainer.innerHTML = notifications.map(notification => {
@@ -49,19 +48,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const notificationId = deleteButton.dataset.id;
             if (confirm('Are you sure you want to delete this notification?')) {
                 try {
-                    const response = await fetch(`http://localhost:3000/api/notifications/${notificationId}`, {
-                        method: 'DELETE',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: loggedInUserEmail })
-                    });
-
-                    if (response.ok) {
-                        showToast('Notification deleted.', 'success');
-                        loadNotifications(); // Refresh the list
-                    } else {
-                        const result = await response.json();
-                        showToast(`Error: ${result.message}`, 'error');
-                    }
+                    await window.api.del(`/notifications/${notificationId}`);
+                    showToast('Notification deleted.', 'success');
+                    await loadNotifications();
                 } catch (error) {
                     console.error('Error deleting notification:', error);
                     showToast('An error occurred.', 'error');
@@ -70,5 +59,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    loadNotifications();
+    await loadNotifications();
 });

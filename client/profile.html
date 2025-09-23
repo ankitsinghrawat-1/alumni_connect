@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale-1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Profile</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -59,26 +59,26 @@
                             <div class="profile-field">
                                 <label><i class="fas fa-user"></i> Full Name</label>
                                 <div class="profile-display-field">
-                                    <span id="full_name" class="display-field"></span>
+                                    <span id="full_name" class="display-field" data-field="full_name"></span>
                                     <span id="profile-verified-badge"></span>
                                 </div>
-                                <input type="text" id="full_name_input" class="edit-field" style="display:none;">
+                                <input type="text" id="full_name_input" name="full_name" class="edit-field" style="display:none;">
                                 <i class="fas fa-edit edit-icon"></i>
                             </div>
                             <div class="profile-field">
                                 <label><i class="fas fa-envelope"></i> Email Address</label>
-                                <span id="email" class="display-field"></span>
+                                <span class="display-field" id="email"></span>
                             </div>
                             <div class="profile-field">
                                 <label><i class="fas fa-info-circle"></i> Bio</label>
-                                <span id="bio" class="display-field"></span>
-                                <textarea id="bio_input" class="edit-field" style="display:none;" rows="4"></textarea>
+                                <span class="display-field" data-field="bio"></span>
+                                <textarea id="bio_input" name="bio" class="edit-field" style="display:none;" rows="4"></textarea>
                                 <i class="fas fa-edit edit-icon"></i>
                             </div>
                             <div class="profile-field">
                                 <label><i class="fab fa-linkedin"></i> LinkedIn Profile URL</label>
-                                <span id="linkedin" class="display-field"></span>
-                                <input type="url" id="linkedin_input" class="edit-field" style="display:none;">
+                                <span class="display-field" data-field="linkedin"></span>
+                                <input type="url" id="linkedin_input" name="linkedin" class="edit-field" style="display:none;">
                                 <i class="fas fa-edit edit-icon"></i>
                             </div>
                         </div>
@@ -87,44 +87,56 @@
                             <h3>Professional & Academic Details</h3>
                             <div class="profile-field">
                                 <label><i class="fas fa-building"></i> Current Company</label>
-                                <span id="current_company" class="display-field"></span>
-                                <input type="text" id="current_company_input" class="edit-field" style="display:none;">
+                                <span class="display-field" data-field="current_company"></span>
+                                <input type="text" id="current_company_input" name="current_company" class="edit-field" style="display:none;">
                                 <i class="fas fa-edit edit-icon"></i>
                             </div>
                             <div class="profile-field">
                                 <label><i class="fas fa-briefcase"></i> Job Title</label>
-                                <span id="job_title" class="display-field"></span>
-                                <input type="text" id="job_title_input" class="edit-field" style="display:none;">
+                                <span class="display-field" data-field="job_title"></span>
+                                <input type="text" id="job_title_input" name="job_title" class="edit-field" style="display:none;">
                                 <i class="fas fa-edit edit-icon"></i>
                             </div>
                             <div class="profile-field">
                                 <label><i class="fas fa-map-marker-alt"></i> City</label>
-                                <span id="city" class="display-field"></span>
-                                <input type="text" id="city_input" class="edit-field" style="display:none;">
+                                <span class="display-field" data-field="city"></span>
+                                <input type="text" id="city_input" name="city" class="edit-field" style="display:none;">
+                                <i class="fas fa-edit edit-icon"></i>
+                            </div>
+                             <div class="profile-field">
+                                <label><i class="fas fa-industry"></i> Industry</label>
+                                <span class="display-field" data-field="industry"></span>
+                                <input type="text" id="industry_input" name="industry" class="edit-field" style="display:none;">
+                                <i class="fas fa-edit edit-icon"></i>
+                            </div>
+                             <div class="profile-field">
+                                <label><i class="fas fa-cogs"></i> Skills</label>
+                                <span class="display-field" data-field="skills"></span>
+                                <textarea id="skills_input" name="skills" class="edit-field" style="display:none;" rows="3" placeholder="e.g. JavaScript, Python, Marketing"></textarea>
                                 <i class="fas fa-edit edit-icon"></i>
                             </div>
                             <div class="profile-field">
                                 <label><i class="fas fa-university"></i> University</label>
-                                <span id="university" class="display-field"></span>
-                                <input type="text" id="university_input" class="edit-field" style="display:none;">
+                                <span class="display-field" data-field="university"></span>
+                                <input type="text" id="university_input" name="university" class="edit-field" style="display:none;">
                                 <i class="fas fa-edit edit-icon"></i>
                             </div>
                             <div class="profile-field">
                                 <label><i class="fas fa-calendar-alt"></i> Graduation Year</label>
-                                <span id="graduation_year" class="display-field"></span>
-                                <input type="text" id="graduation_year_input" class="edit-field" style="display:none;">
+                                <span class="display-field" data-field="graduation_year"></span>
+                                <input type="number" id="graduation_year_input" name="graduation_year" class="edit-field" style="display:none;">
                                 <i class="fas fa-edit edit-icon"></i>
                             </div>
                             <div class="profile-field">
                                 <label><i class="fas fa-graduation-cap"></i> Degree</label>
-                                <span id="degree" class="display-field"></span>
-                                <input type="text" id="degree_input" class="edit-field" style="display:none;">
+                                <span class="display-field" data-field="degree"></span>
+                                <input type="text" id="degree_input" name="degree" class="edit-field" style="display:none;">
                                 <i class="fas fa-edit edit-icon"></i>
                             </div>
                             <div class="profile-field">
                                 <label><i class="fas fa-book"></i> Major</label>
-                                <span id="major" class="display-field"></span>
-                                <input type="text" id="major_input" class="edit-field" style="display:none;">
+                                <span class="display-field" data-field="major"></span>
+                                <input type="text" id="major_input" name="major" class="edit-field" style="display:none;">
                                 <i class="fas fa-edit edit-icon"></i>
                             </div>
                         </div>
@@ -149,34 +161,35 @@
                             <label for="confirm-password">Confirm New Password</label>
                             <input type="password" id="confirm-password" required>
                         </div>
+                        <div id="password-message" class="form-message"></div>
                         <button type="submit" class="btn btn-primary btn-full-width">Change Password</button>
                     </form>
                 </div>
 
                 <div id="privacy-settings" class="profile-page">
                     <h2>Privacy Settings</h2>
-                    <small>If unchecked, others won't find you in the directory or view your full profile.</small>
                     <form id="privacy-form">
                         <div class="input-group privacy-option">
-                            <input type="checkbox" id="is_profile_public">
+                            <input type="checkbox" id="is_profile_public" name="is_profile_public">
                             <div class="privacy-label-group">
                                 <label for="is_profile_public">Make my profile visible in the public directory</label>
+                                <small>If unchecked, others won't find you in the directory or view your full profile.</small>
                             </div>
                         </div>
                         <div class="input-group privacy-option">
-                            <input type="checkbox" id="is_email_visible">
+                            <input type="checkbox" id="is_email_visible" name="is_email_visible">
                              <div class="privacy-label-group">
                                 <label for="is_email_visible">Make my email addresses visible on my profile</label>
                             </div>
                         </div>
                         <div class="input-group privacy-option">
-                            <input type="checkbox" id="is_company_visible">
+                            <input type="checkbox" id="is_company_visible" name="is_company_visible">
                             <div class="privacy-label-group">
                                 <label for="is_company_visible">Make my current company and job title visible</label>
                             </div>
                         </div>
                         <div class="input-group privacy-option">
-                            <input type="checkbox" id="is_location_visible">
+                            <input type="checkbox" id="is_location_visible" name="is_location_visible">
                             <div class="privacy-label-group">
                                 <label for="is_location_visible">Make my city visible</label>
                             </div>
@@ -197,8 +210,8 @@
     
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script src="js/utils.js"></script>
-    <script src="js/notifications.js"></script>
     <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
     <script src="js/profile.js"></script>
 </body>
 </html>

@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     jobTitleHeader.textContent = `Apply for: ${jobTitle}`;
 
-    const loggedInUserEmail = sessionStorage.getItem('loggedInUserEmail');
+    const loggedInUserEmail = localStorage.getItem('loggedInUserEmail');
     if (loggedInUserEmail) {
         document.getElementById('email').value = loggedInUserEmail;
     }
@@ -32,11 +32,8 @@ document.addEventListener('DOMContentLoaded', () => {
         messageDiv.className = 'form-message info';
 
         try {
-            const response = await fetch(`http://localhost:3000/api/jobs/${jobId}/apply`, {
-                method: 'POST',
-                body: formData
-            });
-
+            // Using the special postForm for multipart/form-data
+            const response = await window.api.postForm(`/jobs/${jobId}/apply`, formData);
             const result = await response.json();
 
             if (response.ok) {

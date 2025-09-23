@@ -2,6 +2,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const adminForm = document.getElementById('admin-login-form');
     const messageContainer = document.getElementById('message-container');
 
+    // If a token already exists, redirect to the dashboard
+    if (localStorage.getItem('alumniConnectToken')) {
+        window.location.href = 'admin.html';
+        return;
+    }
+
     if (adminForm) {
         adminForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -21,8 +27,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
 
                 if (response.ok) {
-                    sessionStorage.setItem('loggedInUserEmail', data.email);
-                    sessionStorage.setItem('userRole', data.role);
+                    // Store the token and other info in localStorage
+                    localStorage.setItem('alumniConnectToken', data.token);
+                    localStorage.setItem('loggedInUserEmail', data.email);
+                    localStorage.setItem('userRole', data.role);
                     
                     window.location.href = 'admin.html';
                 } else {

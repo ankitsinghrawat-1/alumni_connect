@@ -7,13 +7,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    const loggedInUserEmail = sessionStorage.getItem('loggedInUserEmail');
-    const userRole = sessionStorage.getItem('userRole');
+    // Check for the token in localStorage now
+    const token = localStorage.getItem('alumniConnectToken');
+    const loggedInUserEmail = localStorage.getItem('loggedInUserEmail');
+    const userRole = localStorage.getItem('userRole');
 
     const navItems = document.createElement('ul');
     navItems.className = 'nav-links';
 
-    if (loggedInUserEmail) {
+    if (token && loggedInUserEmail) { // Check for token to confirm login
         let profilePicUrl = '';
         let unreadCount = 0;
         let userName = 'Alumni';
@@ -74,7 +76,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (profileRes.ok) {
                 loggedInUser = await profileRes.json();
                 userName = loggedInUser.full_name;
-                sessionStorage.setItem('loggedInUserName', userName);
+                localStorage.setItem('loggedInUserName', userName); // Use localStorage
                 profilePicUrl = loggedInUser.profile_pic_url 
                     ? `http://localhost:3000/${loggedInUser.profile_pic_url}` 
                     : createInitialsAvatar(userName);
@@ -96,7 +98,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 navImg.src = profilePicUrl;
                 navImg.onerror = function() {
                     this.onerror = null;
-                    this.src = createInitialsAvatar(sessionStorage.getItem('loggedInUserName') || 'Alumni');
+                    this.src = createInitialsAvatar(localStorage.getItem('loggedInUserName') || 'Alumni');
                 };
             }
             
@@ -161,6 +163,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (notificationBell) {
         notificationBell.addEventListener('click', async (e) => {
             try {
+                // We will need to add the auth token here later
                 await fetch('http://localhost:3000/api/notifications/mark-read', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -201,10 +204,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async () => {
-            sessionStorage.removeItem('loggedInUserEmail');
-            sessionStorage.removeItem('userRole');
-            sessionStorage.removeItem('loggedInUserName');
-            await fetch('http://localhost:3000/api/users/logout', { method: 'POST', credentials: 'include' });
+            // Clear localStorage on logout
+            localStorage.removeItem('alumniConnectToken');
+            localStorage.removeItem('loggedInUserEmail');
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('loggedInUserName');
+            await fetch('http://localhost:3000/api/users/logout', { method: 'POST' });
             window.location.href = 'index.html';
         });
     }
@@ -240,8 +245,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const loggedInHeader = document.getElementById('loggedIn-header');
         const loggedOutHeader = document.getElementById('loggedOut-header');
         if (loggedInHeader && loggedOutHeader) {
-            loggedInHeader.style.display = loggedInUserEmail ? 'block' : 'none';
-            loggedOutHeader.style.display = loggedInUserEmail ? 'none' : 'block';
+            loggedInHeader.style.display = token ? 'block' : 'none'; // Check for token
+            loggedOutHeader.style.display = token ? 'none' : 'block'; // Check for token
         }
     }
 });

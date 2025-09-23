@@ -1,153 +1,93 @@
-// server/api/blogs.js
 const express = require('express');
 const router = express.Router();
+const asyncHandler = require('express-async-handler');
+const { verifyToken, isAdmin } = require('../middleware/authMiddleware');
 
 module.exports = (pool) => {
-    // --- BLOG ENDPOINTS ---
 
-    // GET /api/blogs
-    router.get('/', async (req, res) => {
-        try {
-            const [rows] = await pool.query('SELECT b.blog_id, b.title, b.content, u.full_name AS author, b.created_at FROM blogs b JOIN users u ON b.author_id = u.user_id ORDER BY b.created_at DESC');
-            res.json(rows);
-        } catch (error) {
-            console.error('Error fetching blogs:', error);
-            res.status(500).json({ message: 'Internal Server Error' });
-        }
-    });
+    // GET all blogs (Public)
+    router.get('/', asyncHandler(async (req, res) => {
+        const [rows] = await pool.query('SELECT b.blog_id, b.title, b.content, u.full_name AS author, b.created_at FROM blogs b JOIN users u ON b.author_id = u.user_id ORDER BY b.created_at DESC');
+        res.json(rows);
+    }));
     
-    // NEW: GET /api/blogs/user/:email - To get all blogs by a specific user
-    router.get('/user/:email', async (req, res) => {
-        try {
-            const [user] = await pool.query('SELECT user_id FROM users WHERE email = ?', [req.params.email]);
-            if (user.length === 0) {
-                return res.status(404).json({ message: 'User not found' });
-            }
-            const author_id = user[0].user_id;
-            const [blogs] = await pool.query(
-                'SELECT blog_id, title, content, created_at FROM blogs WHERE author_id = ? ORDER BY created_at DESC',
-                [author_id]
-            );
-            res.json(blogs);
-        } catch (error) {
-            console.error('Error fetching blogs for user:', error);
-            res.status(500).json({ message: 'Internal Server Error' });
-        }
-    });
+    // GET blogs for the currently logged-in user (Protected)
+    // MOVED THIS ROUTE UP so it's matched before '/user/:email'
+    router.get('/user/my-blogs', verifyToken, asyncHandler(async (req, res) => {
+        const author_id = req.user.userId;
+        const [rows] = await pool.query('SELECT blog_id, title, created_at FROM blogs WHERE author_id = ? ORDER BY created_at DESC', [author_id]);
+        res.json(rows);
+    }));
 
-    // GET /api/blogs/:id
-    router.get('/:id', async (req, res) => {
-        try {
-            const [rows] = await pool.query('SELECT b.blog_id, b.title, b.content, u.full_name AS author, u.email as author_email, b.created_at FROM blogs b JOIN users u ON b.author_id = u.user_id WHERE b.blog_id = ?', [req.params.id]);
-            if (rows.length === 0) {
-                return res.status(404).json({ message: 'Blog post not found' });
-            }
-            res.json(rows[0]);
-        } catch (error) {
-            console.error('Error fetching blog post:', error);
-            res.status(500).json({ message: 'Internal Server Error' });
+    // GET all blogs by a specific user (Public)
+    router.get('/user/:email', asyncHandler(async (req, res) => {
+        const [user] = await pool.query('SELECT user_id FROM users WHERE email = ?', [req.params.email]);
+        if (user.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
         }
-    });
-    
-    // GET /api/user/blogs (This is for the logged-in user's "My Blogs" page)
-    router.get('/user/blogs', async (req, res) => {
-        const { email } = req.query;
-        if (!email) {
-            return res.status(400).json({ message: 'Email is required' });
-        }
-        try {
-            const [user] = await pool.query('SELECT user_id FROM users WHERE email = ?', [email]);
-            if (user.length === 0) {
-                return res.status(404).json({ message: 'User not found' });
-            }
-            const author_id = user[0].user_id;
-            const [rows] = await pool.query('SELECT blog_id, title, created_at FROM blogs WHERE author_id = ? ORDER BY created_at DESC', [author_id]);
-            res.json(rows);
-        } catch (error) {
-            console.error('Error fetching user blogs:', error);
-            res.status(500).json({ message: 'Internal Server Error' });
-        }
-    });
+        const author_id = user[0].user_id;
+        const [blogs] = await pool.query(
+            'SELECT blog_id, title, content, created_at FROM blogs WHERE author_id = ? ORDER BY created_at DESC',
+            [author_id]
+        );
+        res.json(blogs);
+    }));
 
-    // POST /api/blogs
-    router.post('/', async (req, res) => {
-        const { title, content, author_email } = req.body;
-        try {
-            const [user] = await pool.query('SELECT user_id FROM users WHERE email = ?', [author_email]);
-            if (user.length === 0) {
-                return res.status(404).json({ message: 'Author not found' });
-            }
-            const author_id = user[0].user_id;
-            await pool.query('INSERT INTO blogs (title, content, author_id) VALUES (?, ?, ?)', [title, content, author_id]);
-            res.status(201).json({ message: 'Blog post created successfully' });
-        } catch (error) {
-            console.error('Error creating blog post:', error);
-            res.status(500).json({ message: 'Internal Server Error' });
+    // GET a single blog post (Public)
+    router.get('/:id', asyncHandler(async (req, res) => {
+        const [rows] = await pool.query('SELECT b.blog_id, b.title, b.content, u.full_name AS author, u.email as author_email, b.created_at FROM blogs b JOIN users u ON b.author_id = u.user_id WHERE b.blog_id = ?', [req.params.id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Blog post not found' });
         }
-    });
+        res.json(rows[0]);
+    }));
 
-    // PUT /api/blogs/:id
-    router.put('/:id', async (req, res) => {
-        const { title, content, email } = req.body;
+    // POST a new blog (Protected)
+    router.post('/', verifyToken, asyncHandler(async (req, res) => {
+        const { title, content } = req.body;
+        const author_id = req.user.userId;
+        await pool.query('INSERT INTO blogs (title, content, author_id) VALUES (?, ?, ?)', [title, content, author_id]);
+        res.status(201).json({ message: 'Blog post created successfully' });
+    }));
+
+    // PUT (update) a blog post (Protected)
+    router.put('/:id', verifyToken, asyncHandler(async (req, res) => {
+        const { title, content } = req.body;
         const blog_id = req.params.id;
+        const current_user_id = req.user.userId;
+        const user_role = req.user.role;
 
-        try {
-            const [user] = await pool.query('SELECT user_id, role FROM users WHERE email = ?', [email]);
-            if (user.length === 0) {
-                return res.status(404).json({ message: 'User not found' });
-            }
-            const current_user_id = user[0].user_id;
-            const user_role = user[0].role;
-            
-            const [blog] = await pool.query('SELECT author_id FROM blogs WHERE blog_id = ?', [blog_id]);
-            if (blog.length === 0) {
-                return res.status(404).json({ message: 'Blog post not found' });
-            }
-
-            if (blog[0].author_id !== current_user_id && user_role !== 'admin') {
-                return res.status(403).json({ message: 'You are not authorized to edit this post.' });
-            }
-
-            await pool.query(
-                'UPDATE blogs SET title = ?, content = ? WHERE blog_id = ?',
-                [title, content, blog_id]
-            );
-            res.status(200).json({ message: 'Blog post updated successfully!' });
-        } catch (error) {
-            console.error('Error updating blog post:', error);
-            res.status(500).json({ message: 'Internal Server Error' });
+        const [blog] = await pool.query('SELECT author_id FROM blogs WHERE blog_id = ?', [blog_id]);
+        if (blog.length === 0) {
+            return res.status(404).json({ message: 'Blog post not found' });
         }
-    });
 
-    // DELETE /api/blogs/:id
-    router.delete('/:id', async (req, res) => {
-        const { email } = req.body;
+        if (blog[0].author_id !== current_user_id && user_role !== 'admin') {
+            return res.status(403).json({ message: 'You are not authorized to edit this post.' });
+        }
+
+        await pool.query('UPDATE blogs SET title = ?, content = ? WHERE blog_id = ?', [title, content, blog_id]);
+        res.status(200).json({ message: 'Blog post updated successfully!' });
+    }));
+
+    // DELETE a blog post (Protected)
+    router.delete('/:id', verifyToken, asyncHandler(async (req, res) => {
         const blog_id = req.params.id;
+        const current_user_id = req.user.userId;
+        const user_role = req.user.role;
 
-        try {
-            const [user] = await pool.query('SELECT user_id, role FROM users WHERE email = ?', [email]);
-            if (user.length === 0) {
-                return res.status(404).json({ message: 'User not found' });
-            }
-            const current_user_id = user[0].user_id;
-            const user_role = user[0].role;
-
-            const [blog] = await pool.query('SELECT author_id FROM blogs WHERE blog_id = ?', [blog_id]);
-            if (blog.length === 0) {
-                return res.status(200).json({ message: 'Blog post already deleted.' });
-            }
-
-            if (blog[0].author_id !== current_user_id && user_role !== 'admin') {
-                return res.status(403).json({ message: 'You are not authorized to delete this post.' });
-            }
-
-            await pool.query('DELETE FROM blogs WHERE blog_id = ?', [blog_id]);
-            res.status(200).json({ message: 'Blog post deleted successfully' });
-        } catch (error) {
-            console.error('Error deleting blog post:', error);
-            res.status(500).json({ message: 'Internal Server Error' });
+        const [blog] = await pool.query('SELECT author_id FROM blogs WHERE blog_id = ?', [blog_id]);
+        if (blog.length === 0) {
+            return res.status(200).json({ message: 'Blog post already deleted.' });
         }
-    });
+
+        if (blog[0].author_id !== current_user_id && user_role !== 'admin') {
+            return res.status(403).json({ message: 'You are not authorized to delete this post.' });
+        }
+
+        await pool.query('DELETE FROM blogs WHERE blog_id = ?', [blog_id]);
+        res.status(200).json({ message: 'Blog post deleted successfully' });
+    }));
 
     return router;
 };

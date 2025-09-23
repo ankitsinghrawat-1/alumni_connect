@@ -2,7 +2,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const mentorsListContainer = document.getElementById('mentors-list');
     const mentorActionArea = document.getElementById('mentor-action-area');
-    const loggedInUserEmail = sessionStorage.getItem('loggedInUserEmail');
+    const loggedInUserEmail = localStorage.getItem('loggedInUserEmail');
     
     // Modal elements
     const modal = document.getElementById('request-modal');
@@ -14,8 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const checkMentorStatus = async () => {
         if (!loggedInUserEmail || !mentorActionArea) return;
         try {
-            const response = await fetch(`http://localhost:3000/api/mentors/status?email=${encodeURIComponent(loggedInUserEmail)}`);
-            const data = await response.json();
+            const data = await window.api.get('/mentors/status');
             if (data.isMentor) {
                 mentorActionArea.innerHTML = `
                     <a href="mentor-requests.html" class="btn btn-primary"><i class="fas fa-inbox"></i> View Requests</a>
@@ -26,19 +25,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         } catch (error) {
             console.error('Error checking mentor status:', error);
+            // Default to "Become a Mentor" if there's an error
+             mentorActionArea.innerHTML = `<a href="become-mentor.html" class="btn btn-primary"><i class="fas fa-user-plus"></i> Become a Mentor</a>`;
         }
     };
 
     const fetchAndRenderMentors = async () => {
         mentorsListContainer.innerHTML = `<div class="loading-spinner"><div class="spinner"></div></div>`;
         try {
-            const response = await fetch('http://localhost:3000/api/mentors');
-            const mentors = await response.json();
+            const mentors = await window.api.get('/mentors');
             mentorsListContainer.innerHTML = '';
 
             if (mentors.length > 0) {
                 mentors.forEach(mentor => {
-                    // Don't show the logged-in user in the mentor list
                     if (mentor.email === loggedInUserEmail) return;
 
                     const mentorItem = document.createElement('div');
@@ -65,7 +64,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
-    // --- Modal Logic ---
     function openModal(mentorId, mentorName) {
         modal.style.display = 'block';
         mentorIdInput.value = mentorId;
@@ -107,30 +105,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         submitBtn.textContent = 'Sending...';
 
         try {
-            const response = await fetch('http://localhost:3000/api/mentors/request', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    mentor_id: mentorId,
-                    mentee_email: loggedInUserEmail,
-                    message: message
-                })
-            });
-            const result = await response.json();
-            if (response.ok) {
-                showToast(result.message, 'success');
-                closeModal();
-            } else {
-                showToast(result.message, 'error');
-            }
+            const result = await window.api.post('/mentors/request', { mentor_id: mentorId, message });
+            showToast(result.message, 'success');
+            closeModal();
         } catch (error) {
-            showToast('An error occurred. Please try again.', 'error');
+            showToast(`Error: ${error.message}`, 'error');
         } finally {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Send Request';
         }
     });
 
-    checkMentorStatus();
-    fetchAndRenderMentors();
+    await checkMentorStatus();
+    await fetchAndRenderMentors();
 });

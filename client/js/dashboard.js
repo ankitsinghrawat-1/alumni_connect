@@ -1,7 +1,6 @@
-// client/js/dashboard.js
 document.addEventListener('DOMContentLoaded', async () => {
-    const userEmail = sessionStorage.getItem('loggedInUserEmail');
-    const userRole = sessionStorage.getItem('userRole');
+    const userEmail = localStorage.getItem('loggedInUserEmail');
+    const userRole = localStorage.getItem('userRole');
 
     if (!userEmail) {
         window.location.href = 'login.html';
@@ -15,11 +14,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const fetchUserProfile = async () => {
         try {
-            const response = await fetch(`http://localhost:3000/api/users/profile/${userEmail}`);
-            if (!response.ok) {
-                throw new Error('Failed to fetch profile');
-            }
-            const user = await response.json();
+            // This is a public route, so it doesn't need the token
+            const user = await window.api.get(`/users/profile/${userEmail}`);
             
             document.getElementById('profile-name').textContent = user.full_name;
             document.getElementById('profile-info').textContent = `${user.job_title || 'N/A'} at ${user.current_company || 'N/A'}`;
@@ -46,8 +42,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const fetchRecentEvents = async () => {
         try {
-            const response = await fetch('http://localhost:3000/api/events/recent');
-            const events = await response.json();
+            const events = await window.api.get('/events/recent');
             const eventsList = document.getElementById('recent-events-list');
             eventsList.innerHTML = '';
             if (events.length > 0) {
@@ -66,8 +61,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const fetchRecentJobs = async () => {
         try {
-            const response = await fetch('http://localhost:3000/api/jobs/recent');
-            const jobs = await response.json();
+            const jobs = await window.api.get('/jobs/recent');
             const jobsList = document.getElementById('recent-jobs-list');
             jobsList.innerHTML = '';
             if (jobs.length > 0) {
@@ -87,16 +81,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const fetchMyRsvps = async () => {
         const myEventsList = document.getElementById('my-events-list');
         try {
-            const rsvpResponse = await fetch(`http://localhost:3000/api/events/user/rsvps?email=${encodeURIComponent(userEmail)}`);
-            const rsvpEventIds = await rsvpResponse.json();
+            const rsvpEventIds = await window.api.get('/events/user/rsvps');
 
             if (rsvpEventIds.length > 0) {
-                const eventsResponse = await fetch('http://localhost:3000/api/events/by-ids', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ event_ids: rsvpEventIds })
-                });
-                const events = await eventsResponse.json();
+                const events = await window.api.post('/events/by-ids', { event_ids: rsvpEventIds });
                 myEventsList.innerHTML = '';
                 events.forEach(event => {
                     const li = document.createElement('li');
