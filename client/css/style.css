@@ -2,13 +2,13 @@
 
 /*Global & Variables*/
 :root {
-    --primary-color: #1e3a5f;      /* Deep Navy */
-    --primary-dark-color: #152945; /* Darker Navy for hover states */
-    --accent-color: #f5a623;      /* Vibrant Goldenrod */
-    --accent-dark-color: #d18d1f;  /* Darker Goldenrod for hover */
+    --primary-color: #1e3a5f;      
+    --primary-dark-color: #152945; 
+    --accent-color: #f5a623;      
+    --accent-dark-color: #d18d1f;  
     
-    --background-color: #f9fafb;   /* Soft, off-white background */
-    --surface-color: #ffffff;      /* Pure white for cards and modals */
+    --background-color: #f9fafb;   
+    --surface-color: #ffffff;      
     
     --text-color: #333333;
     --subtle-text-color: #7f8c8d;
@@ -24,6 +24,9 @@
     --border-radius-large: 12px;
     --box-shadow-subtle: 0 2px 10px rgba(0, 0, 0, 0.05);
     --box-shadow-elevated: 0 4px 20px rgba(0, 0, 0, 0.1);
+
+    /* Animation Timing */
+    --transition-speed: 0.3s;
 }
 
 * {
@@ -58,7 +61,7 @@ h1, h2, h3, h4, h5, h6 {
     padding: 0 1.5rem;
 }
 
-/* Buttons */
+/* --- ENHANCED Buttons --- */
 .btn {
     display: inline-block;
     padding: 0.75rem 1.5rem;
@@ -68,7 +71,7 @@ h1, h2, h3, h4, h5, h6 {
     text-align: center;
     text-decoration: none;
     cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    transition: all var(--transition-speed) ease; /* Simplified transition */
     border: 1px solid transparent;
 }
 
@@ -80,9 +83,16 @@ h1, h2, h3, h4, h5, h6 {
 
 .btn-primary:hover {
     background-color: var(--accent-dark-color);
-    transform: translateY(-2px);
+    transform: translateY(-3px); /* Increased lift */
     box-shadow: var(--box-shadow-elevated);
 }
+
+/* NEW: Active state for a "pressed" feel */
+.btn:active {
+    transform: translateY(-1px);
+    box-shadow: var(--box-shadow-subtle);
+}
+
 
 .btn-secondary {
     background-color: transparent;
@@ -92,7 +102,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .btn-secondary:hover {
     background-color: rgba(245, 166, 35, 0.1);
-    transform: translateY(-2px);
+    transform: translateY(-3px);
     box-shadow: var(--box-shadow-subtle);
 }
 
@@ -111,17 +121,17 @@ h1, h2, h3, h4, h5, h6 {
     width: 100%;
 }
 
-/* Cards */
+/* --- ENHANCED Cards --- */
 .card {
     background: var(--surface-color);
     padding: 2rem;
     border-radius: var(--border-radius-large);
     box-shadow: var(--box-shadow-subtle);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: all var(--transition-speed) ease;
 }
 
 .card:hover {
-    transform: translateY(-5px);
+    transform: translateY(-8px) scale(1.02); /* Increased lift and scale */
     box-shadow: var(--box-shadow-elevated);
 }
 
@@ -2669,4 +2679,84 @@ body main {
     display: flex;
     gap: 1rem;
     margin-top: 1.5rem;
+}
+
+/* 1. Keyframes for Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* 2. Reusable Animation Utility Classes */
+
+/* Simple fade-in for main content sections */
+.fade-in {
+    animation: fadeIn 0.8s ease-in-out forwards;
+}
+
+/* Fade in and slide up - great for cards and sections */
+.fade-in-up {
+    animation: fadeInUp 0.7s ease-out forwards;
+}
+
+/* Staggered animation for list items */
+.fade-in-up:nth-child(1) { animation-delay: 0.1s; }
+.fade-in-up:nth-child(2) { animation-delay: 0.2s; }
+.fade-in-up:nth-child(3) { animation-delay: 0.3s; }
+.fade-in-up:nth-child(4) { animation-delay: 0.4s; }
+.fade-in-up:nth-child(5) { animation-delay: 0.5s; }
+.fade-in-up:nth-child(6) { animation-delay: 0.6s; }
+
+
+/* Subtle scale-in effect - great for hero sections or modals */
+.scale-in {
+    animation: scaleIn 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* 3. Apply Animations to Existing Elements */
+
+/* Animate the hero section content on the landing page */
+.hero-content h1,
+.hero-content p,
+.hero-content .btn {
+    animation: fadeInUp 0.8s ease-out 0.2s backwards;
+}
+.hero-content p { animation-delay: 0.4s; }
+.hero-content .btn { animation-delay: 0.6s; }
+
+/* Animate the form container on login/signup pages */
+.form-container {
+    animation: fadeInUp 0.7s ease-out forwards;
+}
+
+/* Make feature cards on the landing page animate in */
+.feature-card {
+    opacity: 0; /* Start hidden */
+    animation: fadeInUp 0.7s ease-out forwards;
 }

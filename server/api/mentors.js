@@ -93,5 +93,31 @@ module.exports = (pool) => {
         res.status(200).json({ message: 'You have been unlisted as a mentor.' });
     }));
 
+     // A mentor accepts or declines a request.
+     router.post('/requests/:requestId/respond', verifyToken, asyncHandler(async (req, res) => {
+        const { requestId } = req.params;
+        const { action } = req.body; // 'accepted' or 'declined'
+
+        if (!['accepted', 'declined'].includes(action)) {
+            return res.status(400).json({ message: 'Invalid action.' });
+        }
+        
+        // We should also verify that the logged-in user is the mentor for this request
+        const mentor_user_id = req.user.userId;
+        const [request] = await pool.query('SELECT * FROM mentor_requests WHERE request_id = ? AND mentor_user_id = ?', [requestId, mentor_user_id]);
+
+        if (request.length === 0) {
+            return res.status(403).json({ message: 'You are not authorized to respond to this request.' });
+        }
+
+        await pool.query('UPDATE mentor_requests SET status = ? WHERE request_id = ?', [action, requestId]);
+        
+        // Optional: Notify the mentee
+        // const mentee_user_id = request[0].mentee_user_id;
+        // await pool.query('INSERT INTO notifications (user_id, message, link) VALUES (?, ?, ?)', [mentee_user_id, `Your mentorship request was ${action}.`, '/mentors.html']);
+
+        res.status(200).json({ message: `Request has been ${action}.` });
+    }));
+
     return router;
 };

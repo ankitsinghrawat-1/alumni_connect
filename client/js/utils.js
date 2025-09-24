@@ -1,5 +1,4 @@
 // client/js/utils.js
-// client/js/utils.js
 
 /**
  * A universal function to fetch data and render it to a container.
@@ -110,4 +109,39 @@ const createInitialsAvatar = (name) => {
 
     // Return as a Base64-encoded Data URL
     return `data:image/svg+xml;base64,${btoa(svg)}`;
+};
+
+
+/**
+ * ### NEW FUNCTION ###
+ * Initializes all dropdown menus on the page.
+ * It handles toggling the dropdown and closing it when clicking outside.
+ */
+const initializeDropdowns = () => {
+    const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+
+    dropdownToggles.forEach(toggle => {
+        toggle.addEventListener('click', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            const parentDropdown = e.currentTarget.closest('.nav-dropdown');
+
+            // Close other open dropdowns
+            document.querySelectorAll('.nav-dropdown').forEach(dd => {
+                if (dd !== parentDropdown) {
+                    dd.classList.remove('dropdown-active');
+                }
+            });
+
+            // Toggle the current one
+            parentDropdown.classList.toggle('dropdown-active');
+        });
+    });
+
+    // Add a global click listener to close dropdowns when clicking outside
+    window.addEventListener('click', () => {
+        document.querySelectorAll('.nav-dropdown').forEach(dd => {
+            dd.classList.remove('dropdown-active');
+        });
+    });
 };

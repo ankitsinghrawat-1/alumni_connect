@@ -7,20 +7,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // Check for the token in localStorage now
-    const token = localStorage.getItem('alumniConnectToken');
     const loggedInUserEmail = localStorage.getItem('loggedInUserEmail');
     const userRole = localStorage.getItem('userRole');
 
     const navItems = document.createElement('ul');
     navItems.className = 'nav-links';
 
-    if (token && loggedInUserEmail) { // Check for token to confirm login
+    if (loggedInUserEmail) {
         let profilePicUrl = '';
         let unreadCount = 0;
         let userName = 'Alumni';
 
-        // --- Nav Bar HTML Structure ---
         navItems.innerHTML = `
             <li><a href="about.html">About</a></li>
             <li class="nav-dropdown">
@@ -65,7 +62,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             </li>
         `;
         
-        // --- Fetch initial data and set up real-time listeners ---
         try {
             const [profileRes, notificationsRes] = await Promise.all([
                 fetch(`http://localhost:3000/api/users/profile/${loggedInUserEmail}`),
@@ -76,7 +72,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (profileRes.ok) {
                 loggedInUser = await profileRes.json();
                 userName = loggedInUser.full_name;
-                localStorage.setItem('loggedInUserName', userName); // Use localStorage
+                localStorage.setItem('loggedInUserName', userName);
                 profilePicUrl = loggedInUser.profile_pic_url 
                     ? `http://localhost:3000/${loggedInUser.profile_pic_url}` 
                     : createInitialsAvatar(userName);
@@ -102,7 +98,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 };
             }
             
-            // --- REAL-TIME NOTIFICATION LOGIC ---
             const socket = io("http://localhost:3000");
 
             socket.on('connect', () => {
@@ -113,10 +108,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
             socket.on('getNotification', ({ senderName, message }) => {
-                // Show a toast
                 showToast(`New message from ${senderName}: "${message.substring(0, 30)}..."`, 'info');
-                
-                // Update the message icon with a badge
                 const messagesLink = document.getElementById('messages-link');
                 let badge = messagesLink.querySelector('.notification-badge');
                 if (!badge) {
@@ -148,13 +140,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     navLinks.innerHTML = '';
     navLinks.appendChild(navItems);
 
-    // --- Event Listeners (Dropdown, Logout, Theme, etc.) ---
+    // ### CLEANUP IS HERE ###
+    // We now have a single function call to handle all event listeners.
+    initializeDropdowns();
+    // ########################
+
     const messagesLink = document.getElementById('messages-link');
     if (messagesLink) {
         messagesLink.addEventListener('click', () => {
              const badge = messagesLink.querySelector('.notification-badge');
              if (badge) {
-                 badge.style.display = 'none'; // Hide badge on click
+                 badge.style.display = 'none';
              }
         });
     }
@@ -163,7 +159,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (notificationBell) {
         notificationBell.addEventListener('click', async (e) => {
             try {
-                // We will need to add the auth token here later
                 await fetch('http://localhost:3000/api/notifications/mark-read', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -178,34 +173,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     }
-
-    document.querySelectorAll('.dropdown-toggle').forEach(toggle => {
-        toggle.addEventListener('click', e => {
-            e.preventDefault();
-            e.stopPropagation();
-            const parentDropdown = e.currentTarget.closest('.nav-dropdown');
-            
-            document.querySelectorAll('.nav-dropdown').forEach(dd => {
-                if (dd !== parentDropdown) {
-                    dd.classList.remove('dropdown-active');
-                }
-            });
-
-            parentDropdown.classList.toggle('dropdown-active');
-        });
-    });
     
-    window.addEventListener('click', () => {
-        document.querySelectorAll('.nav-dropdown').forEach(dd => {
-            dd.classList.remove('dropdown-active');
-        });
-    });
-
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async () => {
-            // Clear localStorage on logout
-            localStorage.removeItem('alumniConnectToken');
             localStorage.removeItem('loggedInUserEmail');
             localStorage.removeItem('userRole');
             localStorage.removeItem('loggedInUserName');
@@ -245,8 +216,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const loggedInHeader = document.getElementById('loggedIn-header');
         const loggedOutHeader = document.getElementById('loggedOut-header');
         if (loggedInHeader && loggedOutHeader) {
-            loggedInHeader.style.display = token ? 'block' : 'none'; // Check for token
-            loggedOutHeader.style.display = token ? 'none' : 'block'; // Check for token
+            loggedInHeader.style.display = loggedInUserEmail ? 'block' : 'none';
+            loggedOutHeader.style.display = loggedInUserEmail ? 'none' : 'block';
         }
     }
 });

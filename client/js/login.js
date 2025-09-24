@@ -12,9 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error("Error: The message element with ID 'message' was not found.");
     }
 
-    // Check for token instead of email
-    const token = localStorage.getItem('alumniConnectToken');
-    if (token) {
+    // Check for email instead of token
+    const userEmail = localStorage.getItem('loggedInUserEmail');
+    if (userEmail) {
         window.location.href = 'dashboard.html';
         return;
     }
@@ -48,8 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (response.ok) {
-                // Store the token and other info in localStorage
-                localStorage.setItem('alumniConnectToken', data.token);
+                // Store other info in localStorage
                 localStorage.setItem('loggedInUserEmail', data.email);
                 localStorage.setItem('userRole', data.role);
 

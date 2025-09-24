@@ -2,12 +2,7 @@
 const API_BASE_URL = 'http://localhost:3000/api';
 
 const apiFetch = async (endpoint, options = {}) => {
-    const token = localStorage.getItem('alumniConnectToken');
     const headers = { ...options.headers };
-
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
 
     let body;
     if (options.body instanceof FormData) {

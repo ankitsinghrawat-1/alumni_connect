@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
         requestsListContainer.innerHTML = `<div class="loading-spinner"><div class="spinner"></div></div>`;
         try {
             const requests = await window.api.get('/mentors/requests');
+
             if (requests.length > 0) {
                 requestsListContainer.innerHTML = requests.map(req => `
                     <div class="card request-card">
@@ -50,15 +51,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const requestId = target.dataset.id;
             const action = target.dataset.action;
             
-            target.disabled = true;
+            target.disabled = true; // Prevent double clicks
 
             try {
                 const result = await window.api.post(`/mentors/requests/${requestId}/respond`, { action });
                 showToast(result.message, 'success');
-                await loadRequests();
+                await loadRequests(); // Refresh the list of requests
             } catch (error) {
-                console.error('Error responding to request:', error);
-                showToast('An error occurred. Please try again.', 'error');
+                showToast(error.message, 'error');
                 target.disabled = false;
             }
         }
