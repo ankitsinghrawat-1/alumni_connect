@@ -2,7 +2,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const listContainer = document.getElementById('my-blogs-list');
 
-    if (!localStorage.getItem('alumniConnectToken')) {
+    if (!localStorage.getItem('loggedInUserEmail')) {
         window.location.href = 'login.html';
         return;
     }
@@ -15,10 +15,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (blogs.length > 0) {
                 listContainer.innerHTML = blogs.map(blog => `
                     <tr>
-                        <td>${sanitizeHTML(blog.title)}</td>
+                        <td><a href="blog-post.html?id=${blog.blog_id}">${sanitizeHTML(blog.title)}</a></td>
                         <td>${new Date(blog.created_at).toLocaleDateString()}</td>
                         <td>
-                            <a href="edit-blog.html?id=${blog.blog_id}&user=true" class="btn btn-secondary btn-sm">Edit</a>
+                            <a href="edit-blog.html?id=${blog.blog_id}" class="btn btn-secondary btn-sm">Edit</a>
                             <button class="btn btn-danger btn-sm delete-btn" data-id="${blog.blog_id}">Delete</button>
                         </td>
                     </tr>

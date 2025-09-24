@@ -116,6 +116,38 @@ module.exports = (pool) => {
         await pool.query('DELETE FROM users WHERE user_id = ?', [req.params.id]);
         res.status(200).json({ message: 'User deleted successfully' });
     }));
+    
+    // ### NEW ROUTES START HERE ###
+
+    // GET a single user's full profile for editing by admin
+    router.get('/users/:id', asyncHandler(async (req, res) => {
+        const { id } = req.params;
+        const [rows] = await pool.query('SELECT * FROM users WHERE user_id = ?', [id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        const user = rows[0];
+        delete user.password_hash; // Never send the hash
+        res.json(user);
+    }));
+
+    // UPDATE a user's profile by admin
+    router.put('/users/:id', asyncHandler(async (req, res) => {
+        const { id } = req.params;
+        const { full_name, email, role, bio, ...otherFields } = req.body;
+
+        // Basic validation
+        if (!full_name || !email || !role) {
+            return res.status(400).json({ message: 'Full name, email, and role are required.' });
+        }
+
+        const updateFields = { full_name, email, role, bio, ...otherFields };
+
+        await pool.query('UPDATE users SET ? WHERE user_id = ?', [updateFields, id]);
+        res.status(200).json({ message: 'User profile updated successfully by admin.' });
+    }));
+
+    // ### NEW ROUTES END HERE ###
 
     return router;
 };

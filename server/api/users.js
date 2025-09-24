@@ -267,5 +267,20 @@ module.exports = (pool, upload) => {
         res.json(conversations);
     }));
 
+    // NEW ROUTE FOR DASHBOARD STATS
+    router.get('/dashboard/stats', asyncHandler(async (req, res) => {
+        const userId = req.user.userId;
+
+        const [[eventsRsvpd]] = await pool.query('SELECT COUNT(*) as count FROM event_rsvps WHERE user_id = ?', [userId]);
+        const [[blogsPosted]] = await pool.query('SELECT COUNT(*) as count FROM blogs WHERE author_id = ?', [userId]);
+        const [[applicationsSubmitted]] = await pool.query('SELECT COUNT(*) as count FROM job_applications WHERE user_email = ?', [req.user.email]);
+
+        res.json({
+            eventsRsvpd: eventsRsvpd.count,
+            blogsPosted: blogsPosted.count,
+            applicationsSubmitted: applicationsSubmitted.count
+        });
+    }));
+
     return router;
 };

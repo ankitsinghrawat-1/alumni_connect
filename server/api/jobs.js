@@ -59,5 +59,19 @@ module.exports = (pool, upload, createGlobalNotification) => {
         res.status(200).json({ message: 'Job and related applications deleted successfully.' });
     }));
 
+    // NEW ROUTE FOR USER'S JOB APPLICATIONS
+    router.get('/my-applications', verifyToken, asyncHandler(async (req, res) => {
+        const user_email = req.user.email;
+        const [applications] = await pool.query(`
+            SELECT j.title, j.company, ja.status, ja.application_date 
+            FROM job_applications ja 
+            JOIN jobs j ON ja.job_id = j.job_id 
+            WHERE ja.user_email = ? 
+            ORDER BY ja.application_date DESC
+            LIMIT 5
+        `, [user_email]);
+        res.json(applications);
+    }));
+
     return router;
 };

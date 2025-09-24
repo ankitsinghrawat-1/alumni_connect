@@ -10,6 +10,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const privacyForm = document.getElementById('privacy-form');
     const passwordForm = document.getElementById('password-form');
     const verificationSection = document.getElementById('verification-status-section');
+    const editProfileBtn = document.getElementById('edit-profile-btn');
+    const cancelEditBtn = document.getElementById('cancel-edit-btn');
+    const editModeBtns = document.getElementById('edit-mode-btns');
+
+    let originalProfileData = {};
 
     const displayMessage = (message, type = 'error', containerId = 'message') => {
         const messageContainer = document.getElementById(containerId);
@@ -28,6 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
+    // --- Tab Switching Logic ---
     navLinks.forEach(link => {
         link.addEventListener('click', (e) => {
             if (link.hasAttribute('data-tab')) {
@@ -49,10 +55,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.addEventListener('hashchange', handleTabSwitching);
     handleTabSwitching();
 
+    // --- Image Upload Preview ---
     if (uploadBtn) {
         uploadBtn.addEventListener('click', () => pfpUpload.click());
     }
-
     if (pfpUpload) {
         pfpUpload.addEventListener('change', (e) => {
             const file = e.target.files[0];
@@ -64,6 +70,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // --- UI State Management (Read vs. Edit) ---
+    const setFormEditable = (isEditable) => {
+        const inputs = form.querySelectorAll('input:not([type="file"]), textarea');
+        inputs.forEach(input => {
+            if (input.id !== 'email') { // Don't make email editable
+                input.readOnly = !isEditable;
+            }
+        });
+        editProfileBtn.style.display = isEditable ? 'none' : 'block';
+        editModeBtns.style.display = isEditable ? 'flex' : 'none';
+        uploadBtn.style.display = isEditable ? 'inline-block' : 'none';
+    };
+
+    // --- Data Handling ---
     const renderVerificationStatus = (status) => {
         if (!verificationSection) return;
         let content = '';
@@ -75,28 +95,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                 content = `<h3>Account Status</h3><p class="status-badge status-pending"><i class="fas fa-clock"></i> Verification Request Pending</p>`;
                 break;
             default:
-                content = `<h3>Account Status</h3><p class="status-badge status-unverified"><i class="fas fa-times-circle"></i> Unverified</p><p>Request verification to get a badge on your profile.</p><button id="request-verification-btn" class="btn btn-primary">Request Verification</button>`;
+                content = `<h3>Account Status</h3><p class="status-badge status-unverified"><i class="fas fa-times-circle"></i> Unverified</p><p>Request verification to get a badge on your profile.</p><button type="button" id="request-verification-btn" class="btn btn-primary">Request Verification</button>`;
                 break;
         }
         verificationSection.innerHTML = content;
     };
 
     const populateProfileData = (data) => {
+        originalProfileData = data; // Save original data for cancellation
         const fields = ['full_name', 'bio', 'current_company', 'job_title', 'city', 'linkedin', 'university', 'major', 'graduation_year', 'degree', 'industry', 'skills'];
         fields.forEach(id => {
-            const displayElement = document.querySelector(`.display-field[data-field="${id}"]`);
-            const inputElement = document.querySelector(`.edit-field[name="${id}"]`);
-            if (displayElement) displayElement.textContent = data[id] || 'Not set';
-            if (inputElement) inputElement.value = data[id] || '';
+            const inputElement = document.getElementById(id);
+            if (inputElement) {
+                inputElement.value = data[id] || '';
+            }
         });
-
-        const badgeContainer = document.getElementById('profile-verified-badge');
-        if(badgeContainer) {
-            badgeContainer.innerHTML = data.verification_status === 'verified' ? '<span class="verified-badge-sm" title="Verified"><i class="fas fa-check-circle"></i></span>' : '';
-        }
         
         renderVerificationStatus(data.verification_status);
-        document.getElementById('email').textContent = data.email || 'Not set';
+        document.getElementById('email').value = data.email || '';
 
         profilePic.src = data.profile_pic_url ? `http://localhost:3000/${data.profile_pic_url}` : createInitialsAvatar(data.full_name);
         profilePic.onerror = () => { profilePic.src = createInitialsAvatar(data.full_name); };
@@ -123,33 +139,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
-    document.querySelectorAll('.edit-icon').forEach(icon => {
-        icon.addEventListener('click', (e) => {
-            const parent = e.target.closest('.profile-field');
-            const displayField = parent.querySelector('.display-field');
-            const editField = parent.querySelector('.edit-field');
-            
-            if (editField.style.display === 'none') {
-                displayField.style.display = 'none';
-                editField.style.display = 'block';
-                editField.focus();
-                e.target.classList.replace('fa-edit', 'fa-save');
-            } else {
-                editField.style.display = 'none';
-                displayField.textContent = editField.value || 'Not set';
-                displayField.style.display = 'block';
-                e.target.classList.replace('fa-save', 'fa-edit');
-            }
-        });
-    });
-
-    document.querySelectorAll('.edit-field').forEach(field => {
-        field.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                e.target.nextElementSibling.click();
-            }
-        });
+    // --- Event Listeners ---
+    editProfileBtn.addEventListener('click', () => setFormEditable(true));
+    cancelEditBtn.addEventListener('click', () => {
+        populateProfileData(originalProfileData); // Revert changes
+        setFormEditable(false);
     });
 
     if(form) {
@@ -158,9 +152,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             const formData = new FormData(form);
             try {
                 const data = await window.api.putForm(`/users/profile`, formData);
-                displayMessage(data.message, 'success');
-                document.querySelectorAll('.edit-icon.fa-save').forEach(icon => icon.click());
-                await fetchUserProfile();
+                showToast(data.message, 'success');
+                setFormEditable(false);
+                await fetchUserProfile(); // Re-fetch to confirm and get new image URL if changed
             } catch (error) {
                 displayMessage(`Error: ${error.message}`);
             }
@@ -196,6 +190,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 displayMessage('New passwords do not match.', 'error', 'password-message');
                 return;
             }
+            if (newPassword.length < 8) {
+                displayMessage('Password must be at least 8 characters long.', 'error', 'password-message');
+                return;
+            }
 
             try {
                 const result = await window.api.post('/users/change-password', { currentPassword, newPassword });
@@ -218,14 +216,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     renderVerificationStatus('pending');
                 } catch (error) {
                     showToast(error.message, 'error');
-                } finally {
-                    e.target.disabled = false;
-                    e.target.textContent = 'Request Verification';
+                     e.target.disabled = false;
+                     e.target.textContent = 'Request Verification';
                 }
             }
         });
     }
 
+    // Initial load
+    setFormEditable(false); // Ensure form is in read-only mode initially
     await fetchUserProfile();
     await fetchPrivacySettings();
 });

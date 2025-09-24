@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${sanitizeHTML(item.email)}</td>
                 <td><span class="role-badge">${sanitizeHTML(item.role)}</span></td>
                 <td>
+                    <a href="edit-user.html?id=${item.user_id}" class="btn btn-secondary btn-sm">Edit</a>
                     ${item.verification_status !== 'verified' ? `<button class="btn btn-success btn-sm update-status-btn" data-id="${item.user_id}" data-status="verified">Verify</button>` : ''}
                     ${item.verification_status !== 'unverified' ? `<button class="btn btn-secondary btn-sm update-status-btn" data-id="${item.user_id}" data-status="unverified">Unverify</button>` : ''}
                     <button class="btn btn-danger btn-sm delete-btn" data-id="${item.user_id}" data-type="user">Delete</button>
@@ -99,10 +100,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const config = apiConfig[pageType];
         if (!config) return;
         
-        // Admin routes are prefixed in api.js now, so we just use the relative path
         const url = (pageType === 'events' || pageType === 'jobs' || pageType === 'campaigns' || pageType === 'blogs')
             ? `/${pageType}`
-            : `/admin/${pageType}`;
+            : `/admin/${pageType.replace('-requests', 'VerificationRequests')}`; // Simple pluralization
+
+        if (pageType === 'verification') { // Handle special case for verification
+            try {
+                const items = await window.api.get('/admin/verification-requests');
+                if (items.length > 0) {
+                    listContainer.innerHTML = items.map(renderers.verification).join('');
+                } else {
+                    listContainer.innerHTML = '<tr><td colspan="3" class="info-message">No pending verification requests.</td></tr>';
+                }
+            } catch(error) {
+                console.error('Error fetching verification requests:', error);
+                listContainer.innerHTML = `<tr><td colspan="3" class="info-message error">Failed to load items.</td></tr>`;
+            }
+            return;
+        }
 
         try {
             const items = await window.api.get(url);

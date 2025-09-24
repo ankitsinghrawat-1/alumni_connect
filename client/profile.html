@@ -24,7 +24,7 @@
         </nav>
     </header>
 
-    <main class="profile-main fade-in-up">
+    <main class="profile-main">
         <div class="profile-container">
             <div class="profile-sidebar">
                 <h3>Settings</h3>
@@ -56,93 +56,72 @@
 
                         <div class="form-section">
                             <h3>Basic Information</h3>
-                            <div class="profile-field">
-                                <label><i class="fas fa-user"></i> Full Name</label>
-                                <div class="profile-display-field">
-                                    <span id="full_name" class="display-field" data-field="full_name"></span>
-                                    <span id="profile-verified-badge"></span>
-                                </div>
-                                <input type="text" id="full_name_input" name="full_name" class="edit-field" style="display:none;">
-                                <i class="fas fa-edit edit-icon"></i>
+                            <div class="input-group">
+                                <label for="full_name">Full Name</label>
+                                <input type="text" id="full_name" name="full_name" readonly>
                             </div>
-                            <div class="profile-field">
-                                <label><i class="fas fa-envelope"></i> Email Address</label>
-                                <span class="display-field" id="email"></span>
+                             <div class="input-group">
+                                <label>Email Address</label>
+                                <input type="email" id="email" readonly>
                             </div>
-                            <div class="profile-field">
-                                <label><i class="fas fa-info-circle"></i> Bio</label>
-                                <span class="display-field" data-field="bio"></span>
-                                <textarea id="bio_input" name="bio" class="edit-field" style="display:none;" rows="4"></textarea>
-                                <i class="fas fa-edit edit-icon"></i>
+                            <div class="input-group">
+                                <label for="bio">Bio</label>
+                                <textarea id="bio" name="bio" rows="4" readonly></textarea>
                             </div>
-                            <div class="profile-field">
-                                <label><i class="fab fa-linkedin"></i> LinkedIn Profile URL</label>
-                                <span class="display-field" data-field="linkedin"></span>
-                                <input type="url" id="linkedin_input" name="linkedin" class="edit-field" style="display:none;">
-                                <i class="fas fa-edit edit-icon"></i>
+                            <div class="input-group">
+                                <label for="linkedin">LinkedIn Profile URL</label>
+                                <input type="url" id="linkedin" name="linkedin" readonly>
                             </div>
                         </div>
 
                         <div class="form-section">
                             <h3>Professional & Academic Details</h3>
-                            <div class="profile-field">
-                                <label><i class="fas fa-building"></i> Current Company</label>
-                                <span class="display-field" data-field="current_company"></span>
-                                <input type="text" id="current_company_input" name="current_company" class="edit-field" style="display:none;">
-                                <i class="fas fa-edit edit-icon"></i>
+                             <div class="input-group">
+                                <label for="current_company">Current Company</label>
+                                <input type="text" id="current_company" name="current_company" readonly>
                             </div>
-                            <div class="profile-field">
-                                <label><i class="fas fa-briefcase"></i> Job Title</label>
-                                <span class="display-field" data-field="job_title"></span>
-                                <input type="text" id="job_title_input" name="job_title" class="edit-field" style="display:none;">
-                                <i class="fas fa-edit edit-icon"></i>
+                            <div class="input-group">
+                                <label for="job_title">Job Title</label>
+                                <input type="text" id="job_title" name="job_title" readonly>
                             </div>
-                            <div class="profile-field">
-                                <label><i class="fas fa-map-marker-alt"></i> City</label>
-                                <span class="display-field" data-field="city"></span>
-                                <input type="text" id="city_input" name="city" class="edit-field" style="display:none;">
-                                <i class="fas fa-edit edit-icon"></i>
+                            <div class="input-group">
+                                <label for="city">City</label>
+                                <input type="text" id="city" name="city" readonly>
                             </div>
-                             <div class="profile-field">
-                                <label><i class="fas fa-industry"></i> Industry</label>
-                                <span class="display-field" data-field="industry"></span>
-                                <input type="text" id="industry_input" name="industry" class="edit-field" style="display:none;">
-                                <i class="fas fa-edit edit-icon"></i>
+                            <div class="input-group">
+                                <label for="industry">Industry</label>
+                                <input type="text" id="industry" name="industry" readonly placeholder="e.g. Technology, Finance, Healthcare">
                             </div>
-                             <div class="profile-field">
-                                <label><i class="fas fa-cogs"></i> Skills</label>
-                                <span class="display-field" data-field="skills"></span>
-                                <textarea id="skills_input" name="skills" class="edit-field" style="display:none;" rows="3" placeholder="e.g. JavaScript, Python, Marketing"></textarea>
-                                <i class="fas fa-edit edit-icon"></i>
+                            <div class="input-group">
+                                <label for="skills">Skills</label>
+                                <textarea id="skills" name="skills" rows="3" readonly placeholder="e.g. JavaScript, Python, Marketing"></textarea>
                             </div>
-                            <div class="profile-field">
-                                <label><i class="fas fa-university"></i> University</label>
-                                <span class="display-field" data-field="university"></span>
-                                <input type="text" id="university_input" name="university" class="edit-field" style="display:none;">
-                                <i class="fas fa-edit edit-icon"></i>
+                            <div class="input-group">
+                                <label for="university">University</label>
+                                <input type="text" id="university" name="university" readonly>
                             </div>
-                            <div class="profile-field">
-                                <label><i class="fas fa-calendar-alt"></i> Graduation Year</label>
-                                <span class="display-field" data-field="graduation_year"></span>
-                                <input type="number" id="graduation_year_input" name="graduation_year" class="edit-field" style="display:none;">
-                                <i class="fas fa-edit edit-icon"></i>
+                            <div class="input-group">
+                                <label for="graduation_year">Graduation Year</label>
+                                <input type="number" id="graduation_year" name="graduation_year" readonly>
                             </div>
-                            <div class="profile-field">
-                                <label><i class="fas fa-graduation-cap"></i> Degree</label>
-                                <span class="display-field" data-field="degree"></span>
-                                <input type="text" id="degree_input" name="degree" class="edit-field" style="display:none;">
-                                <i class="fas fa-edit edit-icon"></i>
+                             <div class="input-group">
+                                <label for="degree">Degree</label>
+                                <input type="text" id="degree" name="degree" readonly>
                             </div>
-                            <div class="profile-field">
-                                <label><i class="fas fa-book"></i> Major</label>
-                                <span class="display-field" data-field="major"></span>
-                                <input type="text" id="major_input" name="major" class="edit-field" style="display:none;">
-                                <i class="fas fa-edit edit-icon"></i>
+                            <div class="input-group">
+                                <label for="major">Major</label>
+                                <input type="text" id="major" name="major" readonly>
                             </div>
                         </div>
                         
                         <div id="message" class="form-message"></div>
-                        <button type="submit" class="btn btn-primary btn-full-width">Save Changes</button>
+                        <div id="profile-form-actions">
+                             <button type="button" id="edit-profile-btn" class="btn btn-secondary btn-full-width">Edit Profile</button>
+                             <div id="edit-mode-btns" style="display: none;">
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                                <button type="button" id="cancel-edit-btn" class="btn btn-secondary">Cancel</button>
+                             </div>
+                        </div>
                     </form>
                 </div>
 

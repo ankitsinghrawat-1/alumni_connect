@@ -1,52 +1,29 @@
-// client/js/my-blogs.js
-document.addEventListener('DOMContentLoaded', async () => {
-    const blogsList = document.getElementById('my-blogs-list');
+// client/js/add-blog.js
+document.addEventListener('DOMContentLoaded', () => {
+    const addBlogForm = document.getElementById('add-blog-form');
+    const messageDiv = document.getElementById('message');
 
-    if (!localStorage.getItem('alumniConnectToken')) {
+    if (!localStorage.getItem('loggedInUserEmail')) {
         window.location.href = 'login.html';
         return;
     }
 
-    const loadMyBlogs = async () => {
-        blogsList.innerHTML = '<tr><td colspan="3"><div class="loading-spinner"><div class="spinner"></div></div></td></tr>';
-        try {
-            const blogs = await window.api.get('/blogs/user/my-blogs');
-            
-            if (blogs.length > 0) {
-                blogsList.innerHTML = blogs.map(blog => `
-                    <tr>
-                        <td>${sanitizeHTML(blog.title)}</td>
-                        <td>${new Date(blog.created_at).toLocaleDateString()}</td>
-                        <td>
-                            <a href="edit-blog.html?id=${blog.blog_id}&user=true" class="btn btn-secondary btn-sm">Edit</a>
-                            <button class="btn btn-danger btn-sm delete-btn" data-id="${blog.blog_id}">Delete</button>
-                        </td>
-                    </tr>
-                `).join('');
-            } else {
-                blogsList.innerHTML = '<tr><td colspan="3" class="info-message">You have not created any blog posts yet. <a href="add-blog.html">Create one now!</a></td></tr>';
-            }
-        } catch (error) {
-            console.error('Error fetching your blogs:', error);
-            blogsList.innerHTML = '<tr><td colspan="3" class="info-message error">Could not load your blogs. Please try again.</td></tr>';
-        }
-    };
+    addBlogForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-    blogsList.addEventListener('click', async (e) => {
-        if (e.target.classList.contains('delete-btn')) {
-            const blogId = e.target.dataset.id;
-            if (confirm('Are you sure you want to delete this blog post?')) {
-                try {
-                    await window.api.del(`/blogs/${blogId}`);
-                    showToast('Blog post deleted successfully.', 'success');
-                    await loadMyBlogs();
-                } catch (error) {
-                    console.error('Error deleting blog post:', error);
-                    showToast(`Error: ${error.message}`, 'error');
-                }
-            }
+        const blogData = {
+            title: document.getElementById('title').value,
+            content: document.getElementById('content').value,
+        };
+
+        try {
+            const result = await window.api.post('/blogs', blogData);
+            showToast(result.message, 'success');
+            addBlogForm.reset();
+            setTimeout(() => window.location.href = 'my-blogs.html', 1500);
+        } catch (error) {
+            console.error('Error creating blog post:', error);
+            showToast(`Error: ${error.message}`, 'error');
         }
     });
-
-    await loadMyBlogs();
 });
