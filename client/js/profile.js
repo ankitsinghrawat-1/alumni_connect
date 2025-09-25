@@ -151,7 +151,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             e.preventDefault();
             const formData = new FormData(form);
             try {
-                const data = await window.api.putForm(`/users/profile`, formData);
+                // Now using the unified window.api.put for FormData
+                const data = await window.api.put(`/users/profile`, formData);
                 showToast(data.message, 'success');
                 setFormEditable(false);
                 await fetchUserProfile(); // Re-fetch to confirm and get new image URL if changed

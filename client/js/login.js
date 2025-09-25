@@ -37,40 +37,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const response = await fetch('http://localhost:3000/api/users/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email, password }),
-            });
+            const data = await window.api.post('/users/login', { email, password });
 
-            const data = await response.json();
+            // Store other info in localStorage
+            localStorage.setItem('loggedInUserEmail', data.email);
+            localStorage.setItem('userRole', data.role);
 
-            if (response.ok) {
-                // Store other info in localStorage
-                localStorage.setItem('loggedInUserEmail', data.email);
-                localStorage.setItem('userRole', data.role);
+            if (messageDiv) {
+                messageDiv.textContent = 'Login successful!';
+                messageDiv.className = 'form-message success';
+            }
 
-                if (messageDiv) {
-                    messageDiv.textContent = 'Login successful!';
-                    messageDiv.className = 'form-message success';
-                }
-
-                if (data.role === 'admin') {
-                    window.location.href = 'admin.html';
-                } else {
-                    window.location.href = 'dashboard.html';
-                }
+            if (data.role === 'admin') {
+                window.location.href = 'admin.html';
             } else {
-                if (messageDiv) {
-                    messageDiv.textContent = data.message;
-                    messageDiv.className = 'form-message error';
-                }
+                window.location.href = 'dashboard.html';
             }
         } catch (error) {
             if (messageDiv) {
-                messageDiv.textContent = 'An error occurred. Please try again.';
+                messageDiv.textContent = error.message || 'An error occurred. Please try again.';
                 messageDiv.className = 'form-message error';
             }
             console.error('Login error:', error);

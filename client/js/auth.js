@@ -63,14 +63,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
         
         try {
-            const [profileRes, notificationsRes] = await Promise.all([
-                fetch(`http://localhost:3000/api/users/profile/${loggedInUserEmail}`),
-                fetch(`http://localhost:3000/api/notifications?email=${encodeURIComponent(loggedInUserEmail)}`)
+            const [loggedInUser, notifications] = await Promise.all([
+                window.api.get('/users/profile'),
+                window.api.get(`/notifications?email=${encodeURIComponent(loggedInUserEmail)}`)
             ]);
 
-            let loggedInUser = null;
-            if (profileRes.ok) {
-                loggedInUser = await profileRes.json();
+            if (loggedInUser) {
                 userName = loggedInUser.full_name;
                 localStorage.setItem('loggedInUserName', userName);
                 profilePicUrl = loggedInUser.profile_pic_url 
@@ -80,8 +78,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                  profilePicUrl = createInitialsAvatar(userName);
             }
 
-            if (notificationsRes.ok) {
-                const notifications = await notificationsRes.json();
+            if (notifications) {
                 unreadCount = notifications.filter(n => !n.is_read).length;
                 if (unreadCount > 0) {
                     const bell = navItems.querySelector('#notification-bell');
@@ -159,11 +156,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (notificationBell) {
         notificationBell.addEventListener('click', async (e) => {
             try {
-                await fetch('http://localhost:3000/api/notifications/mark-read', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: loggedInUserEmail })
-                });
+                await window.api.post('/notifications/mark-read', { email: loggedInUserEmail });
                 const badge = notificationBell.querySelector('.notification-badge');
                 if (badge) {
                     badge.style.display = 'none';
@@ -180,7 +173,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             localStorage.removeItem('loggedInUserEmail');
             localStorage.removeItem('userRole');
             localStorage.removeItem('loggedInUserName');
-            await fetch('http://localhost:3000/api/users/logout', { method: 'POST' });
+            await window.api.post('/users/logout');
             window.location.href = 'index.html';
         });
     }

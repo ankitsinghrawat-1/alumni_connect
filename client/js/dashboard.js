@@ -8,11 +8,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    if (userRole === 'admin') {
-        window.location.href = 'admin.html';
-        return;
-    }
-
     // --- Dashboard v2 Elements ---
     const welcomeName = document.getElementById('welcome-name');
     const eventsRsvpdStat = document.getElementById('events-rsvpd-stat');
@@ -111,7 +106,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const alumni = await window.api.get(`/users/directory?limit=1`);
             if(alumni && alumni.length > 0) {
                 const spotlight = alumni[0];
-                const profileLinkEmail = spotlight.email || await getEmailById(spotlight.user_id);
+                const profileLinkEmail = spotlight.email;
                 if (profileLinkEmail) {
                     alumniSpotlightContainer.innerHTML = `
                         <div class="spotlight-profile">
@@ -121,23 +116,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <a href="view-profile.html?email=${profileLinkEmail}" class="btn btn-secondary btn-sm">View Profile</a>
                         </div>
                     `;
+                } else {
+                    alumniSpotlightContainer.innerHTML = '<p>Could not load a featured alumnus at this time.</p>';
                 }
             } else {
                  alumniSpotlightContainer.innerHTML = '<p>No featured alumni right now.</p>';
             }
         } catch (error) {
              console.error('Error fetching alumni spotlight:', error);
+             alumniSpotlightContainer.innerHTML = '<p>Could not load a featured alumnus at this time.</p>';
         }
     };
-    
-    const getEmailById = async (userId) => {
-        try {
-            const user = await window.api.get(`/admin/users/${userId}`);
-            return user.email;
-        } catch {
-            return null;
-        }
-    }
 
     const tabs = document.querySelectorAll('.tab-link');
     const tabContents = document.querySelectorAll('.tab-content');

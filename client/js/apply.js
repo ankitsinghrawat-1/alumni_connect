@@ -32,21 +32,17 @@ document.addEventListener('DOMContentLoaded', () => {
         messageDiv.className = 'form-message info';
 
         try {
-            // Using the special postForm for multipart/form-data
-            const response = await window.api.postForm(`/jobs/${jobId}/apply`, formData);
-            const result = await response.json();
+            // Now using the unified window.api.post for FormData
+            const result = await window.api.post(`/jobs/${jobId}/apply`, formData);
+            
+            messageDiv.textContent = result.message;
+            messageDiv.className = 'form-message success';
+            applyForm.reset();
 
-            if (response.ok) {
-                messageDiv.textContent = result.message;
-                messageDiv.className = 'form-message success';
-                applyForm.reset();
-            } else {
-                messageDiv.textContent = `Error: ${result.message}`;
-                messageDiv.className = 'form-message error';
-            }
         } catch (error) {
             console.error('Application submission error:', error);
-            messageDiv.textContent = 'An unexpected error occurred. Please try again.';
+            // The error message from the server is now passed automatically
+            messageDiv.textContent = error.message || 'An unexpected error occurred. Please try again.';
             messageDiv.className = 'form-message error';
         }
     });

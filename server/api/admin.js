@@ -17,7 +17,16 @@ module.exports = (pool) => {
         if (isMatch) {
             const payload = { userId: user.user_id, email: user.email, role: user.role };
             const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '8h' });
-            res.status(200).json({ message: 'Admin login successful', token, role: user.role, email: user.email });
+
+            // Set a secure, httpOnly cookie for the admin
+            res.cookie('alumniConnectToken', token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                maxAge: 8 * 60 * 60 * 1000 // 8 hours
+            });
+
+            res.status(200).json({ message: 'Admin login successful', role: user.role, email: user.email });
         } else {
             res.status(401).json({ message: 'Invalid credentials' });
         }

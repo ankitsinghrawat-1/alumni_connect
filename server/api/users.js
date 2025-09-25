@@ -74,7 +74,7 @@ module.exports = (pool, upload) => {
     }));
 
     router.get('/directory', asyncHandler(async (req, res) => {
-        const { query, university, major, graduation_year, city, industry, skills } = req.query;
+        const { query, university, major, graduation_year, city, industry, skills, limit } = req.query;
         let sql = `SELECT user_id, full_name, email, profile_pic_url, verification_status, job_title, current_company, major, graduation_year, city, is_email_visible, is_company_visible, is_location_visible 
                    FROM users WHERE is_profile_public = TRUE`;
         const params = [];
@@ -107,6 +107,10 @@ module.exports = (pool, upload) => {
             sql += ' AND skills LIKE ?';
             params.push(`%${skills}%`);
         }
+        if (limit) {
+            sql += ' LIMIT ?';
+            params.push(parseInt(limit));
+        }
 
         const [rows] = await pool.query(sql, params);
         
@@ -115,8 +119,8 @@ module.exports = (pool, upload) => {
             full_name: user.full_name,
             profile_pic_url: user.profile_pic_url,
             verification_status: user.verification_status,
-            job_title: user.is_company_visible ? user.job_title : 'N/A',
-            current_company: user.is_company_visible ? user.current_company : 'N/A',
+            job_title: user.is_company_visible ? user.job_title : null,
+            current_company: user.is_company_visible ? user.current_company : null,
             major: user.major,
             graduation_year: user.graduation_year,
             email: user.is_email_visible ? user.email : null,

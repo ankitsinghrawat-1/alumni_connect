@@ -26,17 +26,12 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3000;
 
 // --- MIDDLEWARE SETUP ---
-const corsOptions = {
-    origin: function (origin, callback) {
-        if (!origin || origin.startsWith('http://localhost')) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
+// This is the crucial fix: The CORS configuration now explicitly allows credentials.
+app.use(cors({
+    origin: 'http://localhost:3000', // Or your specific client port if it's different
     credentials: true
-};
-app.use(cors(corsOptions));
+}));
+
 app.use(bodyParser.json());
 app.use(cookieParser());
 

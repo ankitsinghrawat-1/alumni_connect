@@ -2,16 +2,16 @@
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const userEmail = urlParams.get('email');
+    const profileMainView = document.querySelector('.profile-main-view');
 
     if (!userEmail) {
-        document.querySelector('.profile-main-view').innerHTML = '<div class="info-message card">User not found.</div>';
+        profileMainView.innerHTML = '<div class="info-message card">User not found.</div>';
         return;
     }
 
     const fetchUserBlogs = async (email) => {
         const postsContainer = document.getElementById('user-blog-posts');
         try {
-            // This is a public route
             const blogs = await window.api.get(`/blogs/user/${email}`);
 
             if (blogs.length > 0) {
@@ -33,22 +33,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const fetchUserProfile = async (email) => {
         try {
-            // This is a public route
             const user = await window.api.get(`/users/profile/${email}`);
-            
-            // The API now handles private profiles, so we just render what we get
-            if (user.message && user.message.includes('private')) {
-                const badgeHTML = user.verification_status === 'verified' ? '<span class="verified-badge" title="Verified"><i class="fas fa-check-circle"></i> Verified</span>' : '';
-                document.querySelector('.profile-container-view').innerHTML = `
-                    <div class="profile-header-view">
-                        <img class="profile-pic-view" src="${user.profile_pic_url ? `http://localhost:3000/${user.profile_pic_url}` : createInitialsAvatar(user.full_name)}" alt="Profile Picture" onerror="this.onerror=null; this.src=createInitialsAvatar('${user.full_name.replace(/'/g, "\\'")}');">
-                        <h2>${user.full_name} ${badgeHTML}</h2>
-                        <p class="info-message"><i class="fas fa-lock"></i> This profile is private.</p>
-                    </div>
-                `;
-                return;
-            }
-            
+
             document.getElementById('profile-name-view').textContent = user.full_name || 'N/A';
             
             const badgeContainer = document.getElementById('verified-badge-container');
@@ -92,7 +78,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         } catch (error) {
             console.error('Error fetching user profile:', error);
-            document.querySelector('.profile-main-view').innerHTML = `<div class="info-message card error">Could not load profile. ${error.message}</div>`;
+            if (error.message.includes('private')) {
+                // Since we can't get the user data from a private profile,
+                // we'll have to make do with a generic message.
+                profileMainView.innerHTML = `<div class="info-message card"><i class="fas fa-lock"></i> This profile is private.</div>`;
+            } else {
+                profileMainView.innerHTML = `<div class="info-message card error">Could not load profile. ${error.message}</div>`;
+            }
         }
     };
 

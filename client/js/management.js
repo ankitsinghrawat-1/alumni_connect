@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const items = await window.api.get(url);
+            const items = await window.api.get(config.url);
             if (items.length > 0) {
                 listContainer.innerHTML = items.map(renderers[pageType]).join('');
             } else {
